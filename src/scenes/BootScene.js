@@ -35,11 +35,15 @@ export class BootScene extends Phaser.Scene {
         graphics.strokeRect(0, 0, 32, 24);
         graphics.generateTexture('rug_exit', 32, 24);
 
-        // Background Batalla
+        // Background Batalla (Procedural)
         graphics.clear();
         graphics.fillStyle(0x2c3e50);
         graphics.fillRect(0, 0, 800, 600);
         graphics.generateTexture('background', 800, 600);
+
+        // --- Carga de Assets Reales ---
+        // Aquí cargamos la imagen de referencia para probar el motor
+        this.load.image('bg_forest', 'assets/backgrounds/bg_forest.jpg');
 
         // --- Barra de carga ---
         const progressBar = this.add.graphics();
@@ -60,8 +64,8 @@ export class BootScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('BootScene complete. Starting HouseScene...');
-        this.scene.start('HouseScene');
+        console.log('BootScene complete. Starting ForestScene...');
+        this.scene.start('ForestScene');
     }
 
     createPixelTexture(key, spriteData, scale = 2) {

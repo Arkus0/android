@@ -29,7 +29,7 @@ export const PALETTE = {
     p: 0x8e44ad, // Morado (Sábana)
     P: 0x9b59b6, // Morado claro
     o: 0xd35400, // Naranja (Libro)
-    g: 0x27ae60, // Verde (Libro)
+    v: 0x27ae60, // Verde (Libro)
 };
 
 // 16x16 Sprites (Se escalarán x2 o x3 en juego)
