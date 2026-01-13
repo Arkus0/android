@@ -7,15 +7,11 @@ export class UIScene extends Phaser.Scene {
         // Obtenemos referencia a la escena de batalla para escuchar eventos
         this.battleScene = this.scene.get('BattleScene');
 
-        // Panel de fondo para UI
-        this.graphics = this.add.graphics();
-        this.graphics.fillStyle(0x000000, 0.7);
-        this.graphics.fillRect(10, 450, 780, 140); // Caja negra abajo
-        this.graphics.lineStyle(4, 0xffffff);
-        this.graphics.strokeRect(10, 450, 780, 140);
+        // Panel de fondo para UI (SNES Style Window)
+        this.createWindow(10, 450, 780, 140);
 
         // Texto de acciones (Menú)
-        this.menus = this.add.container(20, 460);
+        this.menus = this.add.container(40, 470);
 
         this.attackMenuItem = this.add.text(0, 10, '⚔️ Atacar', { fontSize: '24px', fill: '#fff' });
         this.healMenuItem = this.add.text(0, 50, '✨ Curar', { fontSize: '24px', fill: '#fff' });
@@ -86,5 +82,40 @@ export class UIScene extends Phaser.Scene {
         const enemy = this.battleScene.enemy;
         this.heroHpText.setText(`HP: ${hero.hp}/${hero.maxHp}`);
         this.enemyHpText.setText(`HP: ${enemy.hp}/${enemy.maxHp}`);
+    }
+
+    createWindow(x, y, w, h) {
+        // 9-Slice Scaling using 16x16 tiles
+        const CORNER_SIZE = 16;
+        const centerW = w - (CORNER_SIZE * 2);
+        const centerH = h - (CORNER_SIZE * 2);
+
+        // Center (Background)
+        this.add.image(x + CORNER_SIZE, y + CORNER_SIZE, 'ui_window_c')
+            .setOrigin(0, 0)
+            .setDisplaySize(centerW, centerH);
+
+        // Edges
+        this.add.image(x + CORNER_SIZE, y, 'ui_window_t')
+            .setOrigin(0, 0)
+            .setDisplaySize(centerW, CORNER_SIZE); // Top
+
+        this.add.image(x + CORNER_SIZE, y + h - CORNER_SIZE, 'ui_window_b')
+            .setOrigin(0, 0)
+            .setDisplaySize(centerW, CORNER_SIZE); // Bottom
+
+        this.add.image(x, y + CORNER_SIZE, 'ui_window_l')
+            .setOrigin(0, 0)
+            .setDisplaySize(CORNER_SIZE, centerH); // Left
+
+        this.add.image(x + w - CORNER_SIZE, y + CORNER_SIZE, 'ui_window_r')
+            .setOrigin(0, 0)
+            .setDisplaySize(CORNER_SIZE, centerH); // Right
+
+        // Corners
+        this.add.image(x, y, 'ui_window_tl').setOrigin(0, 0);
+        this.add.image(x + w - CORNER_SIZE, y, 'ui_window_tr').setOrigin(0, 0);
+        this.add.image(x, y + h - CORNER_SIZE, 'ui_window_bl').setOrigin(0, 0);
+        this.add.image(x + w - CORNER_SIZE, y + h - CORNER_SIZE, 'ui_window_br').setOrigin(0, 0);
     }
 }
