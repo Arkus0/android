@@ -4,72 +4,92 @@ export class ForestScene extends Phaser.Scene {
     }
 
     create() {
-        // 1. Fondo: La imagen de Chrono Trigger
-        // La imagen original es 1000x563, la ajustamos para que sea el mapa
-        const bg = this.add.image(0, 0, 'bg_forest').setOrigin(0, 0);
+        // Map Dimensions
+        const TILE_SIZE = 16;
+        const MAP_WIDTH = 50; // 50 * 16 = 800
+        const MAP_HEIGHT = 40; // 40 * 16 = 640
 
-        // Ajustamos los límites del mundo al tamaño de la imagen
-        this.physics.world.setBounds(0, 0, bg.width, bg.height);
+        // 1. Generate Ground (Grass & Dirt)
+        this.groundGroup = this.add.group();
+        this.walls = this.physics.add.staticGroup();
 
-        // Cámara sigue al jugador dentro de los límites de la imagen
-        this.cameras.main.setBounds(0, 0, bg.width, bg.height);
-        this.cameras.main.setZoom(2); // Zoom x2 para ver bien el pixel art
+        // Procedural Generation: Simple Noise/Path
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                let texture = 'tile_grass';
 
-        // 2. Jugador
-        // Posicionamos al jugador en el claro central (aprox x=500, y=350 basado en la imagen)
-        this.player = this.physics.add.sprite(500, 350, 'hero');
-        this.player.setScale(0.25); // Scale down the high-res sprite
+                // Randomly vary grass
+                if (Math.random() > 0.8) texture = 'tile_grass_var';
 
-        // Adjust hitbox to be around the feet
+                // Simple Path (Middle Vertical)
+                // Center is 25. Width 4.
+                if (Math.abs(x - 25) < 3 + Math.sin(y * 0.2) * 1.5) {
+                    texture = 'tile_dirt';
+                }
+
+                // Create Tile
+                // Note: Origin 0,0 usually easier for tiles
+                const tile = this.add.image(x * TILE_SIZE, y * TILE_SIZE, texture).setOrigin(0, 0);
+                this.groundGroup.add(tile);
+            }
+        }
+
+        // 2. Generate Trees (Obstacles)
+        // Scatter trees where there is NO dirt
+        for (let i = 0; i < 60; i++) {
+            const tx = Phaser.Math.Between(1, MAP_WIDTH - 2);
+            const ty = Phaser.Math.Between(2, MAP_HEIGHT - 3);
+
+            // Check if on path (approximate)
+            if (Math.abs(tx - 25) < 5) continue;
+
+            const x = tx * TILE_SIZE;
+            const y = ty * TILE_SIZE;
+
+            // Tree Trunk (Collision)
+            const trunk = this.walls.create(x + 8, y + 8, 'obj_tree_trunk'); // Center origin for physics usually
+            trunk.setSize(10, 10);
+            trunk.setOffset(3, 3);
+
+            // Tree Top (Visual only, Depth higher)
+            // Tree top is 16x16, placed above trunk
+            const top = this.add.image(x + 8, y - 8, 'obj_tree_top');
+            top.setDepth(20); // Above player
+        }
+
+        // World Bounds
+        this.physics.world.setBounds(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+        this.cameras.main.setBounds(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+        this.cameras.main.setZoom(2);
+
+        // 3. Player
+        // Position on the path
+        this.player = this.physics.add.sprite(400, 300, 'hero');
+        this.player.setScale(0.25);
         this.player.body.setSize(80, 40);
         this.player.body.setOffset(37, 160);
-
         this.player.setCollideWorldBounds(true);
-        this.player.setDepth(10); // Siempre encima del fondo
+        this.player.setDepth(10);
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // 3. Colisiones Invisibles (Obstáculos)
-        this.walls = this.physics.add.staticGroup();
-
-        // Definir rectángulos invisibles sobre los árboles/rocas
-        // Esto es "a ojo" basándonos en la imagen para simular solidez
-
-        // Bosque izquierda
-        this.addObstacle(0, 0, 350, 600);
-        // Bosque derecha
-        this.addObstacle(650, 0, 350, 600);
-        // Bosque arriba
-        this.addObstacle(350, 0, 300, 150);
-        // Bosque abajo (con hueco pequeño)
-        this.addObstacle(350, 500, 100, 100);
-        this.addObstacle(550, 500, 100, 100);
-
+        // 4. Collisions
         this.physics.add.collider(this.player, this.walls);
 
-        // 4. Salida a Batalla (Transición)
-        // Zona abajo (simulando camino)
-        this.exitZone = this.add.rectangle(500, 580, 100, 20, 0xff0000, 0); // Invisible (alpha 0)
+        // 5. Exit Zone (Bottom of path)
+        this.exitZone = this.add.rectangle(400, (MAP_HEIGHT * TILE_SIZE) - 20, 100, 20, 0xff0000, 0);
         this.physics.add.existing(this.exitZone, true);
-
         this.physics.add.overlap(this.player, this.exitZone, this.onExit, null, this);
 
-        // 5. Controles
+        // 6. Controls
         this.cursors = this.input.keyboard.createCursorKeys();
 
         // UI Info
-        this.add.text(10, 10, 'Phaser 3 Engine Test', {
+        this.add.text(10, 10, 'SNES Style Procedural Map', {
             fontSize: '16px',
             fill: '#fff',
             stroke: '#000', strokeThickness: 4
-        }).setScrollFactor(0).setDepth(20);
-    }
-
-    addObstacle(x, y, w, h) {
-        // Crea un obstáculo invisible
-        // Phaser Arcade Physics usa el centro para posicionar, así que ajustamos
-        const obstacle = this.add.rectangle(x + w/2, y + h/2, w, h, 0x00ff00, 0); // 0 alpha = invisible
-        this.walls.add(obstacle);
+        }).setScrollFactor(0).setDepth(100);
     }
 
     update() {
@@ -107,6 +127,12 @@ export class ForestScene extends Phaser.Scene {
         if (!moving) {
             this.player.anims.play('hero-idle-side', true);
         }
+
+        // Simple depth sorting for player vs trunks
+        // If player Y < trunk Y, player is behind trunk.
+        // But trunks are in a static group.
+        // We can just keep player at depth 10, trunks at depth 5 (default).
+        // Tree TOPS are depth 20.
     }
 
     onExit() {

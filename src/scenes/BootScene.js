@@ -1,4 +1,5 @@
 import { PALETTE, SPRITES } from '../utils/PixelArt.js';
+import { SNES_PALETTE, UI_ASSETS, FOREST_ASSETS } from '../utils/PixelAssets.js';
 
 export class BootScene extends Phaser.Scene {
     constructor() {
@@ -9,11 +10,33 @@ export class BootScene extends Phaser.Scene {
         // --- Generación de Pixel Art Procedural ---
         // Generamos las texturas basándonos en los arrays de SPRITES
 
+        // Old Procedural Assets
         this.createPixelTexture('hero_texture', SPRITES.hero);
         this.createPixelTexture('enemy_texture', SPRITES.slime);
         this.createPixelTexture('floor_wood', SPRITES.floor_wood);
         this.createPixelTexture('wall', SPRITES.wall_stone);
         this.createPixelTexture('bookshelf', SPRITES.bookshelf);
+
+        // --- SNES Assets Generation (High Quality) ---
+        // UI Window (9-Slice)
+        const uiScale = 1; // 1:1 pixel mapping
+        this.createSNESTexture('ui_window_tl', UI_ASSETS.window_tl, uiScale);
+        this.createSNESTexture('ui_window_t', UI_ASSETS.window_t, uiScale);
+        this.createSNESTexture('ui_window_tr', UI_ASSETS.window_tr, uiScale);
+        this.createSNESTexture('ui_window_l', UI_ASSETS.window_l, uiScale);
+        this.createSNESTexture('ui_window_c', UI_ASSETS.window_c, uiScale);
+        this.createSNESTexture('ui_window_r', UI_ASSETS.window_r, uiScale);
+        this.createSNESTexture('ui_window_bl', UI_ASSETS.window_bl, uiScale);
+        this.createSNESTexture('ui_window_b', UI_ASSETS.window_b, uiScale);
+        this.createSNESTexture('ui_window_br', UI_ASSETS.window_br, uiScale);
+
+        // Forest Tiles
+        const tileScale = 1;
+        this.createSNESTexture('tile_grass', FOREST_ASSETS.grass, tileScale);
+        this.createSNESTexture('tile_grass_var', FOREST_ASSETS.grass_var, tileScale);
+        this.createSNESTexture('tile_dirt', FOREST_ASSETS.dirt, tileScale);
+        this.createSNESTexture('obj_tree_trunk', FOREST_ASSETS.tree_trunk, tileScale);
+        this.createSNESTexture('obj_tree_top', FOREST_ASSETS.tree_top, tileScale);
 
         // Cama (caso especial, tal vez reusar o crear textura más grande)
         // Por simplicidad, usamos el 16x16 escalado
@@ -145,6 +168,31 @@ export class BootScene extends Phaser.Scene {
             }
         }
 
+        this.textures.addCanvas(key, canvas);
+    }
+
+    createSNESTexture(key, spriteData, scale = 1) {
+        const width = spriteData[0].length;
+        const height = spriteData.length;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext('2d');
+
+        for (let y = 0; y < height; y++) {
+            const row = spriteData[y];
+            for (let x = 0; x < width; x++) {
+                const char = row[x];
+                const color = SNES_PALETTE[char];
+
+                if (color !== null && color !== undefined) {
+                    const colorStr = '#' + color.toString(16).padStart(6, '0');
+                    ctx.fillStyle = colorStr;
+                    ctx.fillRect(x * scale, y * scale, scale, scale);
+                }
+            }
+        }
         this.textures.addCanvas(key, canvas);
     }
 }
