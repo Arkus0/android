@@ -42,7 +42,15 @@ export const SNES_PALETTE = {
     'w': 0x1a237e, // Deep
     'W': 0x283593, // Mid
     's': 0x3949ab, // Surface
-    'S': 0x7986cb  // Foam/Highlight
+    'S': 0x7986cb, // Foam/Highlight
+
+    // House / Village
+    'P': 0xe0e0d0, // Plaster (Cream Wall)
+    'p': 0xc0c0b0, // Plaster Shadow
+    'L': 0xf1c40f, // Light (Window Yellow)
+    'r': 0x800000, // Roof Dark
+    'R': 0xa02020, // Roof Mid
+    'f': 0xd04040, // Roof Light
 };
 
 // 16x16 Pixel Arrays
@@ -306,5 +314,139 @@ export const FOREST_ASSETS = {
         "ccVVVVVVVVVVVVcc",
         "_ccccVVVVVVcccc_",
         "_____cccccc_____"
+    ]
+};
+
+export const VILLAGE_ASSETS = {
+    // Roofs
+    roof_red_l: [
+        "________________",
+        "_______________R",
+        "______________Rr",
+        "_____________Rrf",
+        "____________Rrff",
+        "___________RrffR",
+        "__________RrffRr",
+        "_________RrffRrf",
+        "________RrffRrff",
+        "_______RrffRrffR",
+        "______RrffRrffRr",
+        "_____RrffRrffRrf",
+        "____RrffRrffRrff",
+        "___RrffRrffRrffR",
+        "__RrffRrffRrffRr",
+        "_RrffRrffRrffRrf"
+    ],
+    roof_red_c: [
+        "________________",
+        "RRRRRRRRRRRRRRRR",
+        "rrrrrrrrrrrrrrrr",
+        "ffffffffffffffff",
+        "ffffffffffffffff",
+        "RRRRRRRRRRRRRRRR",
+        "rrrrrrrrrrrrrrrr",
+        "ffffffffffffffff",
+        "ffffffffffffffff",
+        "RRRRRRRRRRRRRRRR",
+        "rrrrrrrrrrrrrrrr",
+        "ffffffffffffffff",
+        "ffffffffffffffff",
+        "RRRRRRRRRRRRRRRR",
+        "rrrrrrrrrrrrrrrr",
+        "ffffffffffffffff"
+    ],
+    roof_red_r: [
+        "________________",
+        "R_______________",
+        "rR______________",
+        "frR_____________",
+        "ffrR____________",
+        "RffrR___________",
+        "rRffrR__________",
+        "frRffrR_________",
+        "ffrRffrR________",
+        "RffrRffrR_______",
+        "rRffrRffrR______",
+        "frRffrRffrR_____",
+        "ffrRffrRffrR____",
+        "RffrRffrRffrR___",
+        "rRffrRffrRffrR__",
+        "frRffrRffrRffrR_"
+    ],
+
+    // Walls
+    wall_plaster: [
+        "bbbbbbbbbbbbbbbb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bbbbbbbbbbbbbbbb"
+    ],
+    wall_window: [
+        "bbbbbbbbbbbbbbbb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPbbbbbbPPPPb",
+        "bPPPPbLLLLbPPPPb",
+        "bPPPPbLLLLbPPPPb",
+        "bPPPPbLLLLbPPPPb",
+        "bPPPPbLLLLbPPPPb",
+        "bPPPPbbbbbbPPPPb",
+        "bPPPPbbWbbbPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bPPPPPPPPPPPPPPb",
+        "bbbbbbbbbbbbbbbb"
+    ],
+    wall_door: [
+        "bbbbbbbbbbbbbbbb",
+        "bPPPPbbbbbbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDdDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bPPPPbDDDDbPPPPb",
+        "bbbbbbbbbbbbbbbb"
+    ],
+
+    // Fence
+    fence: [
+        "________________",
+        "________________",
+        "________________",
+        "________________",
+        "___bb______bb___",
+        "___bb______bb___",
+        "__boob____boob__",
+        "__boob____boob__",
+        "bbboobbbbboobbbb",
+        "bbboobbbbboobbbb",
+        "__boob____boob__",
+        "__boob____boob__",
+        "__boob____boob__",
+        "__boob____boob__",
+        "__boob____boob__",
+        "__boob____boob__"
     ]
 };

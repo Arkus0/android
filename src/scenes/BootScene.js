@@ -1,5 +1,5 @@
 import { PALETTE, SPRITES } from '../utils/PixelArt.js';
-import { SNES_PALETTE, UI_ASSETS, FOREST_ASSETS } from '../utils/PixelAssets.js';
+import { SNES_PALETTE, UI_ASSETS, FOREST_ASSETS, VILLAGE_ASSETS } from '../utils/PixelAssets.js';
 
 export class BootScene extends Phaser.Scene {
     constructor() {
@@ -37,6 +37,15 @@ export class BootScene extends Phaser.Scene {
         this.createSNESTexture('tile_dirt', FOREST_ASSETS.dirt, tileScale);
         this.createSNESTexture('obj_tree_trunk', FOREST_ASSETS.tree_trunk, tileScale);
         this.createSNESTexture('obj_tree_top', FOREST_ASSETS.tree_top, tileScale);
+
+        // Village Tiles
+        this.createSNESTexture('roof_red_l', VILLAGE_ASSETS.roof_red_l, tileScale);
+        this.createSNESTexture('roof_red_c', VILLAGE_ASSETS.roof_red_c, tileScale);
+        this.createSNESTexture('roof_red_r', VILLAGE_ASSETS.roof_red_r, tileScale);
+        this.createSNESTexture('wall_plaster', VILLAGE_ASSETS.wall_plaster, tileScale);
+        this.createSNESTexture('wall_window', VILLAGE_ASSETS.wall_window, tileScale);
+        this.createSNESTexture('wall_door', VILLAGE_ASSETS.wall_door, tileScale);
+        this.createSNESTexture('obj_fence', VILLAGE_ASSETS.fence, tileScale);
 
         // Cama (caso especial, tal vez reusar o crear textura más grande)
         // Por simplicidad, usamos el 16x16 escalado
@@ -95,8 +104,8 @@ export class BootScene extends Phaser.Scene {
 
     create() {
         this.createAnimations();
-        console.log('BootScene complete. Starting ForestScene...');
-        this.scene.start('ForestScene');
+        console.log('BootScene complete. Starting VillageScene...');
+        this.scene.start('VillageScene');
     }
 
     createAnimations() {
