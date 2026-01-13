@@ -45,6 +45,13 @@ export class BootScene extends Phaser.Scene {
         // Aquí cargamos la imagen de referencia para probar el motor
         this.load.image('bg_forest', 'assets/backgrounds/bg_forest.jpg');
 
+        // Hero Sprites
+        this.load.spritesheet('hero', 'assets/images/hero_spritesheet.png', {
+            frameWidth: 154,
+            frameHeight: 210
+        });
+        this.load.image('hero_portrait', 'assets/images/hero_portrait.png');
+
         // --- Barra de carga ---
         const progressBar = this.add.graphics();
         const progressBox = this.add.graphics();
@@ -64,8 +71,50 @@ export class BootScene extends Phaser.Scene {
     }
 
     create() {
+        this.createAnimations();
         console.log('BootScene complete. Starting ForestScene...');
         this.scene.start('ForestScene');
+    }
+
+    createAnimations() {
+        // Hero Animations (Right facing only in sheet)
+        this.anims.create({
+            key: 'hero-idle-side',
+            frames: [ { key: 'hero', frame: 0 } ],
+            frameRate: 10
+        });
+
+        this.anims.create({
+            key: 'hero-walk-side',
+            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        // Mapped animations for Up/Down (reusing side)
+        this.anims.create({
+            key: 'hero-idle-down',
+            frames: [ { key: 'hero', frame: 0 } ],
+            frameRate: 10
+        });
+        this.anims.create({
+            key: 'hero-walk-down',
+            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'hero-idle-up',
+            frames: [ { key: 'hero', frame: 0 } ],
+            frameRate: 10
+        });
+        this.anims.create({
+            key: 'hero-walk-up',
+            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
+            frameRate: 8,
+            repeat: -1
+        });
     }
 
     createPixelTexture(key, spriteData, scale = 2) {

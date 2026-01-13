@@ -17,7 +17,13 @@ export class ForestScene extends Phaser.Scene {
 
         // 2. Jugador
         // Posicionamos al jugador en el claro central (aprox x=500, y=350 basado en la imagen)
-        this.player = this.physics.add.sprite(500, 350, 'hero_texture');
+        this.player = this.physics.add.sprite(500, 350, 'hero');
+        this.player.setScale(0.25); // Scale down the high-res sprite
+
+        // Adjust hitbox to be around the feet
+        this.player.body.setSize(80, 40);
+        this.player.body.setOffset(37, 160);
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10); // Siempre encima del fondo
 
@@ -70,16 +76,36 @@ export class ForestScene extends Phaser.Scene {
         const speed = 150;
         this.player.setVelocity(0);
 
+        let moving = false;
+
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-speed);
+            this.player.setFlipX(true);
+            this.player.anims.play('hero-walk-side', true);
+            moving = true;
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(speed);
+            this.player.setFlipX(false);
+            this.player.anims.play('hero-walk-side', true);
+            moving = true;
         }
 
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-speed);
+            if (!moving) {
+                this.player.anims.play('hero-walk-up', true);
+                moving = true;
+            }
         } else if (this.cursors.down.isDown) {
             this.player.setVelocityY(speed);
+            if (!moving) {
+                this.player.anims.play('hero-walk-down', true);
+                moving = true;
+            }
+        }
+
+        if (!moving) {
+            this.player.anims.play('hero-idle-side', true);
         }
     }
 
