@@ -1,4 +1,6 @@
 import { BootScene } from './scenes/BootScene.js';
+import { ForestScene } from './scenes/ForestScene.js';
+import { HouseScene } from './scenes/HouseScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { UIScene } from './scenes/UIScene.js';
 
@@ -11,6 +13,8 @@ const config = {
     backgroundColor: '#000000',
     scene: [
         BootScene,
+        ForestScene, // Nueva escena principal para demo visual
+        HouseScene,
         BattleScene,
         UIScene
     ],
