@@ -1,0 +1,6 @@
+127.0.0.1 - - [13/Jan/2026 16:33:45] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jan/2026 16:33:45] "GET /src/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jan/2026 16:33:46] "GET /src/scenes/BootScene.js HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jan/2026 16:33:46] "GET /src/scenes/UIScene.js HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jan/2026 16:33:46] "GET /src/scenes/BattleScene.js HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jan/2026 16:33:46] "GET /src/prefabs/Unit.js HTTP/1.1" 200 -
