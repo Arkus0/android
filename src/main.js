@@ -1,4 +1,5 @@
 import { BootScene } from './scenes/BootScene.js';
+import { HouseScene } from './scenes/HouseScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { UIScene } from './scenes/UIScene.js';
 
@@ -11,6 +12,7 @@ const config = {
     backgroundColor: '#000000',
     scene: [
         BootScene,
+        HouseScene,
         BattleScene,
         UIScene
     ],
