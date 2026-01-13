@@ -4,6 +4,7 @@ import { ForestScene } from './scenes/ForestScene.js';
 import { HouseScene } from './scenes/HouseScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { UIScene } from './scenes/UIScene.js';
+import { WorldUIScene } from './scenes/WorldUIScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -18,7 +19,8 @@ const config = {
         ForestScene,
         HouseScene,
         BattleScene,
-        UIScene
+        UIScene,
+        WorldUIScene
     ],
     scale: {
         mode: Phaser.Scale.FIT,

@@ -1,9 +1,16 @@
+import { timeSystem } from '../systems/TimeSystem.js';
+
 export class VillageScene extends Phaser.Scene {
     constructor() {
         super('VillageScene');
     }
 
     create(data) {
+        // Launch UI if not active
+        if (!this.scene.get('WorldUIScene').scene.isActive()) {
+            this.scene.launch('WorldUIScene');
+        }
+
         // Map Dimensions
         const TILE_SIZE = 16;
         const MAP_WIDTH = 50;
@@ -72,7 +79,13 @@ export class VillageScene extends Phaser.Scene {
         // UI
         this.add.text(10, 10, 'Village Zone', {
             fontSize: '16px', fill: '#fff', stroke: '#000', strokeThickness: 4
-        }).setScrollFactor(0).setDepth(100);
+        }).setScrollFactor(0).setDepth(95);
+
+        // Darkness Overlay
+        this.darknessOverlay = this.add.rectangle(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, 0x000020)
+            .setOrigin(0, 0)
+            .setDepth(90) // Above map/entities, below UI
+            .setAlpha(0);
     }
 
     buildHouse(tx, ty, w, h, houseId) {
@@ -171,7 +184,10 @@ export class VillageScene extends Phaser.Scene {
         });
     }
 
-    update() {
+    update(time, delta) {
+        timeSystem.update(delta);
+        this.darknessOverlay.setAlpha(timeSystem.getLightLevel());
+
         const speed = 150;
         this.player.setVelocity(0);
 
