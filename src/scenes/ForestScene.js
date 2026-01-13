@@ -1,9 +1,15 @@
+import { timeSystem } from '../systems/TimeSystem.js';
+
 export class ForestScene extends Phaser.Scene {
     constructor() {
         super('ForestScene');
     }
 
     create() {
+        if (!this.scene.get('WorldUIScene').scene.isActive()) {
+            this.scene.launch('WorldUIScene');
+        }
+
         // Map Dimensions
         const TILE_SIZE = 16;
         const MAP_WIDTH = 50; // 50 * 16 = 800
@@ -89,10 +95,19 @@ export class ForestScene extends Phaser.Scene {
             fontSize: '16px',
             fill: '#fff',
             stroke: '#000', strokeThickness: 4
-        }).setScrollFactor(0).setDepth(100);
+        }).setScrollFactor(0).setDepth(95);
+
+        // Darkness Overlay
+        this.darknessOverlay = this.add.rectangle(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, 0x000020)
+            .setOrigin(0, 0)
+            .setDepth(90)
+            .setAlpha(0);
     }
 
-    update() {
+    update(time, delta) {
+        timeSystem.update(delta);
+        this.darknessOverlay.setAlpha(timeSystem.getLightLevel());
+
         const speed = 150;
         this.player.setVelocity(0);
 

@@ -1,4 +1,5 @@
 import { UI_ASSETS } from '../utils/PixelAssets.js';
+import { timeSystem } from '../systems/TimeSystem.js';
 
 export class HouseScene extends Phaser.Scene {
     constructor() {
@@ -13,9 +14,20 @@ export class HouseScene extends Phaser.Scene {
     }
 
     create() {
+        if (!this.scene.get('WorldUIScene').scene.isActive()) {
+            this.scene.launch('WorldUIScene');
+        }
+
         // Zoom retro
         this.cameras.main.setZoom(2);
         this.cameras.main.centerOn(400, 300);
+
+        // Overlay Oscuridad
+        this.darknessOverlay = this.add.rectangle(0, 0, 800, 600, 0x000020)
+            .setOrigin(0,0)
+            .setScrollFactor(0)
+            .setDepth(90)
+            .setAlpha(0);
 
         // --- Configuración de Casas ---
         // Definimos layouts simples basados en IDs
@@ -141,7 +153,10 @@ export class HouseScene extends Phaser.Scene {
         this.dialogContainer.add([graphics, this.dialogText]);
     }
 
-    update() {
+    update(time, delta) {
+        timeSystem.update(delta);
+        this.darknessOverlay.setAlpha(timeSystem.getLightLevel());
+
         const speed = 200;
         this.player.setVelocity(0);
 
