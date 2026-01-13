@@ -4,43 +4,53 @@ export class HouseScene extends Phaser.Scene {
     }
 
     create() {
-        // --- 1. Construir el Mapa (Casa) ---
-        // Al no usar Tilemap externo, dibujamos tiles manualmente
+        // Zoom de cámara para dar sensación retro (sprites pequeños se ven grandes)
+        this.cameras.main.setZoom(2);
+        this.cameras.main.centerOn(400, 300); // Centrar en la habitación pequeña
 
-        // Suelo (800x600 relleno)
-        for (let y = 0; y < 600; y += 32) {
-            for (let x = 0; x < 800; x += 32) {
+        // --- 1. Construir el Mapa (Casa) ---
+
+        // Suelo (Dibujamos tiles de 32x32 - generados por scale=2 de 16x16)
+        // Reducimos el área dibujada para que quepa en el zoom
+        const startX = 200;
+        const endX = 600;
+        const startY = 150;
+        const endY = 450;
+
+        for (let y = startY; y < endY; y += 32) {
+            for (let x = startX; x < endX; x += 32) {
                 this.add.image(x + 16, y + 16, 'floor_wood');
             }
         }
 
-        // Grupo de paredes (colisiones)
+        // Grupo de paredes
         this.walls = this.physics.add.staticGroup();
-
-        // Bordes de la habitación
-        this.createWalls();
+        this.createWalls(startX, endX, startY, endY);
 
         // --- 2. Muebles y Objetos ---
         this.interactables = this.physics.add.staticGroup();
 
         // Cama
-        const bed = this.interactables.create(100, 100, 'bed');
+        const bed = this.interactables.create(startX + 60, startY + 60, 'bed');
+        bed.setScale(1.5); // Un poco más grande
         bed.setData('message', 'Es tu cama. Huele a aventuras.');
 
         // Librería
-        const bookshelf = this.interactables.create(300, 80, 'bookshelf');
+        const bookshelf = this.interactables.create(startX + 150, startY + 40, 'bookshelf');
+        bookshelf.setScale(1.5);
         bookshelf.setData('message', 'Libros antiguos... "Cómo programar en Phaser", "El arte de la guerra", "Recetas de Limo".');
 
         // Mesa
-        const table = this.interactables.create(500, 300, 'table');
+        const table = this.interactables.create(endX - 80, endY - 80, 'table');
         table.setData('message', 'Una mesa de roble. Hay migas de pan.');
 
-        // Salida (Alfombra) - Es un sensor, no bloquea
-        this.exitZone = this.physics.add.sprite(400, 550, 'rug_exit');
+        // Salida (Alfombra)
+        this.exitZone = this.physics.add.sprite(startX + 200, endY - 20, 'rug_exit');
 
         // --- 3. Jugador ---
-        this.player = this.physics.add.sprite(400, 300, 'player_overworld');
-        this.player.setCollideWorldBounds(true);
+        // Usamos 'hero_texture' (generada en BootScene con pixel art) en lugar de 'player_overworld' antiguo
+        this.player = this.physics.add.sprite(startX + 200, startY + 150, 'hero_texture');
+        this.player.setCollideWorldBounds(false); // Bounds son las paredes ahora
 
         // Colisiones
         this.physics.add.collider(this.player, this.walls);
@@ -54,40 +64,48 @@ export class HouseScene extends Phaser.Scene {
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         // UI de texto (Caja de diálogo simple)
+        // IMPORTANTE: Al hacer zoom en la cámara principal, la UI también se hace zoom si está en world space.
+        // Lo ideal sería una cámara separada para UI, pero para simplificar, escalaremos inversamente o
+        // haremos la caja más pequeña y centrada en la visión.
+
         this.dialogBox = this.add.graphics();
+        this.dialogBox.setScrollFactor(0); // Fija a la pantalla
         this.dialogBox.fillStyle(0x000000, 0.8);
+        // Coordenadas ajustadas para pantalla de 800x600 sin zoom (ScrollFactor 0)
         this.dialogBox.fillRect(50, 450, 700, 100);
-        this.dialogBox.lineStyle(2, 0xffffff);
+        this.dialogBox.lineStyle(4, 0xffffff);
         this.dialogBox.strokeRect(50, 450, 700, 100);
         this.dialogBox.visible = false;
 
         this.dialogText = this.add.text(70, 460, '', {
-            fontSize: '20px',
+            fontSize: '24px',
             color: '#ffffff',
             wordWrap: { width: 660 }
         });
+        this.dialogText.setScrollFactor(0);
         this.dialogText.visible = false;
 
         // Texto de ayuda
-        this.add.text(10, 10, 'Flechas: Mover | ESPACIO: Interactuar', { fontSize: '16px', fill: '#fff', backgroundColor: '#000' });
+        this.add.text(10, 10, 'Flechas: Mover | ESPACIO: Interactuar', { fontSize: '20px', fill: '#fff', backgroundColor: '#000' }).setScrollFactor(0);
     }
 
-    createWalls() {
-        // Paredes del borde (Top, Bottom, Left, Right)
+    createWalls(startX, endX, startY, endY) {
+        // Paredes del borde ajustadas al nuevo tamaño de habitación
         // Top
-        for (let x = 0; x < 800; x += 32) {
-            this.walls.create(x + 16, 16, 'wall');
+        for (let x = startX; x < endX; x += 32) {
+            this.walls.create(x + 16, startY + 16, 'wall');
         }
-        // Bottom (dejamos hueco para puerta en el centro)
-        for (let x = 0; x < 800; x += 32) {
-            if (x < 350 || x > 450) { // Hueco de puerta
-                this.walls.create(x + 16, 584, 'wall');
+        // Bottom
+        for (let x = startX; x < endX; x += 32) {
+            // Hueco puerta
+            if (x < startX + 180 || x > startX + 220) {
+                this.walls.create(x + 16, endY - 16, 'wall');
             }
         }
         // Left & Right
-        for (let y = 32; y < 584; y += 32) {
-            this.walls.create(16, y + 16, 'wall');
-            this.walls.create(784, y + 16, 'wall');
+        for (let y = startY + 32; y < endY - 32; y += 32) {
+            this.walls.create(startX + 16, y + 16, 'wall');
+            this.walls.create(endX - 16, y + 16, 'wall');
         }
     }
 
