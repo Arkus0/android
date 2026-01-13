@@ -1,4 +1,5 @@
 import { timeSystem } from '../systems/TimeSystem.js';
+import { npcManager } from '../systems/npc/NPCManager.js';
 
 export class VillageScene extends Phaser.Scene {
     constructor() {
@@ -186,6 +187,7 @@ export class VillageScene extends Phaser.Scene {
 
     update(time, delta) {
         timeSystem.update(delta);
+        npcManager.update(timeSystem);
         this.darknessOverlay.setAlpha(timeSystem.getLightLevel());
 
         const speed = 150;
