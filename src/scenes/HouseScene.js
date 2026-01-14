@@ -40,11 +40,6 @@ export class HouseScene extends Phaser.Scene {
 
         const config = LAYOUTS[this.houseId] || LAYOUTS['default'];
 
-        const TILE_SIZE = 32; // Usamos los assets 16x16 escalados x2 (BootScene los crea x1 pero la escena anterior usaba x2... un momento)
-        // BootScene.js crea 'floor_wood' con scale=2 por defecto en createPixelTexture viejo.
-        // Pero los nuevos tiles SNES se crean con scale=1.
-        // Asumamos que para interiors usamos los assets "viejos" (floor_wood, wall) que son 32x32 reales.
-
         // Calculamos centro
         const roomW = config.width * 32;
         const roomH = config.height * 32;
@@ -56,7 +51,7 @@ export class HouseScene extends Phaser.Scene {
         // 1. Suelo
         for (let y = 0; y < config.height; y++) {
             for (let x = 0; x < config.width; x++) {
-                // floor_wood es 32x32
+                // floor_wood es 32x32 procedimental
                 this.add.image(startX + x * 32 + 16, startY + y * 32 + 16, 'floor_wood');
             }
         }
@@ -98,16 +93,14 @@ export class HouseScene extends Phaser.Scene {
              const stairs = this.add.rectangle(endX - 60, startY + 150, 40, 60, 0x5d4037);
              this.physics.add.existing(stairs, true); // Static
              this.interactables.add(stairs); // Collider
-             // Stairs don't have message logic in addProp, handling simply
-             // For now just a block.
         }
 
         // 4. Jugador (Hero)
         // Posicionamos frente a la puerta (bottom center)
         this.player = this.physics.add.sprite(startX + midX * 32 + 16, endY - 60, 'hero');
-        this.player.setScale(0.25);
-        this.player.body.setSize(80, 40);
-        this.player.body.setOffset(37, 160);
+        this.player.setScale(1); // Scale 1 for new assets
+        this.player.body.setSize(12, 12);
+        this.player.body.setOffset(6, 12);
         this.player.setCollideWorldBounds(false);
 
         // Physics
@@ -123,7 +116,7 @@ export class HouseScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-        // Dialog UI (Reusing 9-slice concept roughly or simple graphics)
+        // Dialog UI
         this.createDialogUI();
     }
 
@@ -138,19 +131,39 @@ export class HouseScene extends Phaser.Scene {
         this.dialogContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(100);
         this.dialogContainer.visible = false;
 
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x000000, 0.8);
-        graphics.fillRect(50, 450, 700, 100);
-        graphics.lineStyle(4, 0xffffff);
-        graphics.strokeRect(50, 450, 700, 100);
+        const x = 50, y = 450, w = 700, h = 100;
+        const CORNER_SIZE = 8; // From our Sliced UI in BootScene
 
-        this.dialogText = this.add.text(70, 460, '', {
+        // Reconstruct 9-slice manually or just simple
+        // Using 'ui_window_c' etc from BootScene sliceUI
+        // Top-Left
+        this.dialogContainer.add(this.add.image(x, y, 'ui_window_tl').setOrigin(0,0));
+        // Top
+        this.dialogContainer.add(this.add.image(x + CORNER_SIZE, y, 'ui_window_t').setOrigin(0,0).setDisplaySize(w - 2*CORNER_SIZE, CORNER_SIZE));
+        // Top-Right
+        this.dialogContainer.add(this.add.image(x + w - CORNER_SIZE, y, 'ui_window_tr').setOrigin(0,0));
+
+        // Left
+        this.dialogContainer.add(this.add.image(x, y + CORNER_SIZE, 'ui_window_l').setOrigin(0,0).setDisplaySize(CORNER_SIZE, h - 2*CORNER_SIZE));
+        // Center
+        this.dialogContainer.add(this.add.image(x + CORNER_SIZE, y + CORNER_SIZE, 'ui_window_c').setOrigin(0,0).setDisplaySize(w - 2*CORNER_SIZE, h - 2*CORNER_SIZE));
+        // Right
+        this.dialogContainer.add(this.add.image(x + w - CORNER_SIZE, y + CORNER_SIZE, 'ui_window_r').setOrigin(0,0).setDisplaySize(CORNER_SIZE, h - 2*CORNER_SIZE));
+
+        // Bottom-Left
+        this.dialogContainer.add(this.add.image(x, y + h - CORNER_SIZE, 'ui_window_bl').setOrigin(0,0));
+        // Bottom
+        this.dialogContainer.add(this.add.image(x + CORNER_SIZE, y + h - CORNER_SIZE, 'ui_window_b').setOrigin(0,0).setDisplaySize(w - 2*CORNER_SIZE, CORNER_SIZE));
+        // Bottom-Right
+        this.dialogContainer.add(this.add.image(x + w - CORNER_SIZE, y + h - CORNER_SIZE, 'ui_window_br').setOrigin(0,0));
+
+        this.dialogText = this.add.text(x + 20, y + 20, '', {
             fontSize: '24px',
             color: '#ffffff',
-            wordWrap: { width: 660 }
+            wordWrap: { width: w - 40 }
         });
 
-        this.dialogContainer.add([graphics, this.dialogText]);
+        this.dialogContainer.add(this.dialogText);
     }
 
     update(time, delta) {
@@ -219,7 +232,7 @@ export class HouseScene extends Phaser.Scene {
     onExit() {
         this.cameras.main.fadeOut(200);
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Regresamos a VillageScene en la posición de la puerta
+            // Regresamos a VillageScene
             this.scene.start('VillageScene', {
                 startX: this.returnX,
                 startY: this.returnY

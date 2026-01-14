@@ -6,18 +6,23 @@ export class ForestScene extends Phaser.Scene {
     }
 
     create() {
+        // Play Music
+        if (!this.sound.get('bgm_forest')) {
+            this.sound.play('bgm_forest', { loop: true, volume: 0.5 });
+        }
+
         if (!this.scene.get('WorldUIScene').scene.isActive()) {
             this.scene.launch('WorldUIScene');
         }
 
         // Map Dimensions
         const TILE_SIZE = 16;
-        const MAP_WIDTH = 50; // 50 * 16 = 800
-        const MAP_HEIGHT = 40; // 40 * 16 = 640
+        const MAP_WIDTH = 50;
+        const MAP_HEIGHT = 40;
 
         // 1. Generate Ground (Grass & Dirt)
         this.groundGroup = this.add.group();
-        this.walls = this.physics.add.staticGroup();
+        this.walls = this.physics.add.staticGroup(); // Trees
 
         // Procedural Generation: Simple Noise/Path
         for (let y = 0; y < MAP_HEIGHT; y++) {
@@ -28,13 +33,10 @@ export class ForestScene extends Phaser.Scene {
                 if (Math.random() > 0.8) texture = 'tile_grass_var';
 
                 // Simple Path (Middle Vertical)
-                // Center is 25. Width 4.
                 if (Math.abs(x - 25) < 3 + Math.sin(y * 0.2) * 1.5) {
                     texture = 'tile_dirt';
                 }
 
-                // Create Tile
-                // Note: Origin 0,0 usually easier for tiles
                 const tile = this.add.image(x * TILE_SIZE, y * TILE_SIZE, texture).setOrigin(0, 0);
                 this.groundGroup.add(tile);
             }
@@ -52,15 +54,28 @@ export class ForestScene extends Phaser.Scene {
             const x = tx * TILE_SIZE;
             const y = ty * TILE_SIZE;
 
-            // Tree Trunk (Collision)
-            const trunk = this.walls.create(x + 8, y + 8, 'obj_tree_trunk'); // Center origin for physics usually
-            trunk.setSize(10, 10);
-            trunk.setOffset(3, 3);
+            // Tree Object (Single Sprite)
+            const tree = this.walls.create(x + 8, y + 8, 'obj_tree');
+            tree.setOrigin(0.5, 1); // Origin at bottom center for easier z-sorting
+            tree.setPosition(x + 8, y + 8); // Re-position because origin changed
 
-            // Tree Top (Visual only, Depth higher)
-            // Tree top is 16x16, placed above trunk
-            const top = this.add.image(x + 8, y - 8, 'obj_tree_top');
-            top.setDepth(20); // Above player
+            // Adjust physics body (trunk area)
+            // Sprite is ~53x74. Trunk is at bottom.
+            // Body relative to center of sprite (if static?).
+            // Static bodies are tricky with origin changes sometimes.
+            // Let's reset origin to 0.5, 0.5 and manual offset?
+            // Or just trust refreshBody.
+
+            tree.setOrigin(0.5, 1);
+            tree.refreshBody();
+
+            // Set body size (small box at bottom)
+            const width = 16;
+            const height = 16;
+            tree.body.setSize(width, height);
+            tree.body.setOffset((tree.width - width) / 2, tree.height - height);
+
+            tree.setDepth(tree.y); // Initial depth
         }
 
         // World Bounds
@@ -71,9 +86,12 @@ export class ForestScene extends Phaser.Scene {
         // 3. Player
         // Position on the path
         this.player = this.physics.add.sprite(400, 300, 'hero');
-        this.player.setScale(0.25);
-        this.player.body.setSize(80, 40);
-        this.player.body.setOffset(37, 160);
+        this.player.setScale(1); // Pixel art scale
+
+        // Adjust player body
+        this.player.body.setSize(12, 12);
+        this.player.body.setOffset(6, 12); // Bottom half of 24x24
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
 
@@ -91,16 +109,16 @@ export class ForestScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
 
         // UI Info
-        this.add.text(10, 10, 'SNES Style Procedural Map', {
+        this.add.text(10, 10, 'Forest (Updated Assets)', {
             fontSize: '16px',
             fill: '#fff',
             stroke: '#000', strokeThickness: 4
-        }).setScrollFactor(0).setDepth(95);
+        }).setScrollFactor(0).setDepth(9000);
 
         // Darkness Overlay
         this.darknessOverlay = this.add.rectangle(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, 0x000020)
             .setOrigin(0, 0)
-            .setDepth(90)
+            .setDepth(8000)
             .setAlpha(0);
     }
 
@@ -143,16 +161,15 @@ export class ForestScene extends Phaser.Scene {
             this.player.anims.play('hero-idle-side', true);
         }
 
-        // Simple depth sorting for player vs trunks
-        // If player Y < trunk Y, player is behind trunk.
-        // But trunks are in a static group.
-        // We can just keep player at depth 10, trunks at depth 5 (default).
-        // Tree TOPS are depth 20.
+        // Depth Sorting
+        this.player.setDepth(this.player.y);
     }
 
     onExit() {
         this.cameras.main.fadeOut(500, 0, 0, 0);
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, (cam, effect) => {
+            // Stop forest music? Or fade it.
+            this.sound.stopAll();
             this.scene.start('BattleScene');
         });
     }

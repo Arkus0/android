@@ -11,11 +11,11 @@ export class BattleScene extends Phaser.Scene {
         this.add.image(400, 300, 'background');
 
         // Instanciar personajes
-        // Escalar sprites pixel art x3 para que se vean imponentes en batalla
+        // Escalar sprites pixel art x4 para que se vean imponentes en batalla
 
-        // Héroe a la derecha
-        this.hero = new Unit(this, 600, 300, 'hero_texture', 0, 'Hero', 100, 20);
-        this.hero.setScale(4); // 32x32 original -> 128x128 visual
+        // Héroe a la derecha (Using 'hero' spritesheet, frame 0 default)
+        this.hero = new Unit(this, 600, 300, 'hero', 0, 'Hero', 100, 20);
+        this.hero.setScale(4);
 
         // Enemigo a la izquierda
         this.enemy = new Unit(this, 200, 300, 'enemy_texture', 0, 'Enemy', 50, 10);
