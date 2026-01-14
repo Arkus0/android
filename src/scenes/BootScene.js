@@ -1,5 +1,7 @@
 import { PALETTE, SPRITES } from '../utils/PixelArt.js';
 import { SNES_PALETTE, UI_ASSETS, FOREST_ASSETS, VILLAGE_ASSETS } from '../utils/PixelAssets.js';
+import { BUILDING_ASSETS } from '../utils/BuildingAssets.js';
+import { NPC_SPRITES } from '../utils/NPCAssets.js';
 
 export class BootScene extends Phaser.Scene {
     constructor() {
@@ -46,6 +48,23 @@ export class BootScene extends Phaser.Scene {
         this.createSNESTexture('wall_window', VILLAGE_ASSETS.wall_window, tileScale);
         this.createSNESTexture('wall_door', VILLAGE_ASSETS.wall_door, tileScale);
         this.createSNESTexture('obj_fence', VILLAGE_ASSETS.fence, tileScale);
+
+        // New Building Assets
+        this.createSNESTexture('forge_anvil', BUILDING_ASSETS.forge_anvil, tileScale);
+        this.createSNESTexture('wall_chimney', BUILDING_ASSETS.wall_chimney, tileScale);
+        this.createSNESTexture('sign_weapon', BUILDING_ASSETS.sign_weapon, tileScale);
+        this.createSNESTexture('sign_mug', BUILDING_ASSETS.sign_mug, tileScale);
+        this.createSNESTexture('wall_wood', BUILDING_ASSETS.wall_wood, tileScale);
+        this.createSNESTexture('window_stained', BUILDING_ASSETS.window_stained, tileScale);
+        this.createSNESTexture('wall_stone', BUILDING_ASSETS.wall_stone, tileScale);
+        this.createSNESTexture('cross_stone', BUILDING_ASSETS.cross_stone, tileScale);
+        this.createSNESTexture('crop_wheat', BUILDING_ASSETS.crop_wheat, tileScale);
+        this.createSNESTexture('crop_veg', BUILDING_ASSETS.crop_veg, tileScale);
+        this.createSNESTexture('stall_roof', BUILDING_ASSETS.stall_roof, tileScale);
+        this.createSNESTexture('obj_crate', BUILDING_ASSETS.crate, tileScale);
+
+        // NPC Procedural Generation
+        this.generateNPCTextures(tileScale);
 
         // Cama (caso especial, tal vez reusar o crear textura más grande)
         // Por simplicidad, usamos el 16x16 escalado
@@ -203,5 +222,44 @@ export class BootScene extends Phaser.Scene {
             }
         }
         this.textures.addCanvas(key, canvas);
+    }
+
+    generateNPCTextures(scale) {
+        // Define palettes for different roles
+        const palettes = {
+            'blacksmith': { 'H': 0x000000, 'S': 0xffccaa, 'C': 0x5d4037, 'D': 0x3e2723, 'F': 0x111111, '@': 0x000000 },
+            'villager_f': { 'H': 0x8d6e63, 'S': 0xffccaa, 'C': 0xe91e63, 'D': 0xc2185b, 'F': 0x3e2723, '@': 0x000000 },
+            'child':      { 'H': 0xffe082, 'S': 0xffccaa, 'C': 0x4caf50, 'D': 0x388e3c, 'F': 0x3e2723, '@': 0x000000 },
+            'priest':     { 'H': 0xeeeeee, 'S': 0xffccaa, 'C': 0x5c6bc0, 'D': 0x3949ab, 'F': 0x1a237e, '@': 0x000000 },
+            'merchant':   { 'H': 0x3e2723, 'S': 0xffccaa, 'C': 0xffb300, 'D': 0xff6f00, 'F': 0x3e2723, '@': 0x000000 },
+            'guard':      { 'H': 0x607d8b, 'S': 0xffccaa, 'C': 0x90a4ae, 'D': 0x546e7a, 'F': 0x263238, '@': 0x000000 }
+        };
+
+        for (const [role, pal] of Object.entries(palettes)) {
+            const key = `npc_${role}`;
+            const spriteData = NPC_SPRITES.base_idle;
+
+            const width = spriteData[0].length;
+            const height = spriteData.length;
+            const canvas = document.createElement('canvas');
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            const ctx = canvas.getContext('2d');
+
+            for (let y = 0; y < height; y++) {
+                const row = spriteData[y];
+                for (let x = 0; x < width; x++) {
+                    const char = row[x];
+                    let color = pal[char];
+
+                    if (color !== undefined) {
+                         const colorStr = '#' + color.toString(16).padStart(6, '0');
+                         ctx.fillStyle = colorStr;
+                         ctx.fillRect(x * scale, y * scale, scale, scale);
+                    }
+                }
+            }
+            this.textures.addCanvas(key, canvas);
+        }
     }
 }
