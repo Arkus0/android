@@ -8,6 +8,11 @@ export class VillageScene extends Phaser.Scene {
     }
 
     create(data) {
+        // Play Music
+        if (!this.sound.get('bgm_village')) {
+            this.sound.play('bgm_village', { loop: true, volume: 0.5 });
+        }
+
         // Launch UI if not active
         if (!this.scene.get('WorldUIScene').scene.isActive()) {
             this.scene.launch('WorldUIScene');
@@ -72,9 +77,9 @@ export class VillageScene extends Phaser.Scene {
         if (data && data.startY) startY = data.startY;
 
         this.player = this.physics.add.sprite(startX, startY, 'hero');
-        this.player.setScale(0.25);
-        this.player.body.setSize(80, 40);
-        this.player.body.setOffset(37, 160);
+        this.player.setScale(1); // Standard pixel art scale
+        this.player.body.setSize(12, 12);
+        this.player.body.setOffset(6, 12);
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
 
@@ -95,7 +100,7 @@ export class VillageScene extends Phaser.Scene {
         // UI
         this.add.text(10, 10, 'Valleverde Village', {
             fontSize: '16px', fill: '#fff', stroke: '#000', strokeThickness: 4
-        }).setScrollFactor(0).setDepth(95);
+        }).setScrollFactor(0).setDepth(9000);
 
         // --- 4. Initialize NPCs ---
         this.initializeNPCs(TILE_SIZE);
@@ -103,7 +108,7 @@ export class VillageScene extends Phaser.Scene {
         // Darkness Overlay
         this.darknessOverlay = this.add.rectangle(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, 0x000020)
             .setOrigin(0, 0)
-            .setDepth(90)
+            .setDepth(8000)
             .setAlpha(0);
     }
 
@@ -202,6 +207,21 @@ export class VillageScene extends Phaser.Scene {
         }
         // Fence
         // Simple fence surrounding
+        this.buildFence(x, y, 10, 8);
+    }
+
+    buildFence(tx, ty, w, h) {
+         const TILE_SIZE = 16;
+         // Top/Bottom
+         for(let x=0; x<w; x++) {
+             this.props.create((tx + x) * TILE_SIZE, ty * TILE_SIZE, 'obj_fence').setOrigin(0,0).refreshBody();
+             this.props.create((tx + x) * TILE_SIZE, (ty + h - 1) * TILE_SIZE, 'obj_fence').setOrigin(0,0).refreshBody();
+         }
+         // Left/Right
+         for(let y=1; y<h-1; y++) {
+             this.props.create(tx * TILE_SIZE, (ty + y) * TILE_SIZE, 'obj_fence').setOrigin(0,0).refreshBody();
+             this.props.create((tx + w - 1) * TILE_SIZE, (ty + y) * TILE_SIZE, 'obj_fence').setOrigin(0,0).refreshBody();
+         }
     }
 
     buildGraveyard(x, y) {
@@ -287,6 +307,7 @@ export class VillageScene extends Phaser.Scene {
         this.entering = true;
         this.cameras.main.fadeOut(500);
         this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.sound.stopAll(); // Stop music when entering house
             this.entering = false;
             this.scene.start('HouseScene', {
                 houseId: zone.houseId,

@@ -9,45 +9,52 @@ export class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // --- Generación de Pixel Art Procedural ---
-        // Generamos las texturas basándonos en los arrays de SPRITES
+        // --- Load Assets from Pack ---
+        this.load.image('ui_base', 'assets/images/ui/text_box.png');
 
-        // Old Procedural Assets
-        this.createPixelTexture('hero_texture', SPRITES.hero);
-        this.createPixelTexture('enemy_texture', SPRITES.slime);
-        this.createPixelTexture('floor_wood', SPRITES.floor_wood);
-        this.createPixelTexture('wall', SPRITES.wall_stone);
-        this.createPixelTexture('bookshelf', SPRITES.bookshelf);
+        // Tiles
+        this.load.image('tile_grass', 'assets/images/tiles/grass.png');
+        this.load.image('tile_grass_var', 'assets/images/tiles/grass_var.png');
+        this.load.image('tile_dirt', 'assets/images/tiles/dirt.png');
+
+        // Props
+        this.load.image('obj_tree', 'assets/images/props/tree.png');
+        this.load.image('obj_crate', 'assets/images/props/crate.png');
+        this.load.image('obj_fence', 'assets/images/props/fence.png');
+        this.load.image('obj_flower', 'assets/images/props/flower.png');
+        this.load.image('obj_rock', 'assets/images/props/rock.png');
+
+        // Mobs & Hero
+        this.load.spritesheet('enemy_texture', 'assets/images/mobs/slime.png', {
+            frameWidth: 16,
+            frameHeight: 24
+        }); // Slime Spritesheet
+        this.load.spritesheet('hero', 'assets/images/chars/hero.png', {
+            frameWidth: 24,
+            frameHeight: 24
+        });
+
+        // Audio
+        this.load.audio('bgm_village', 'assets/audio/Red Carpet Wooden Floor.mp3');
+        this.load.audio('bgm_forest', 'assets/audio/Foggy Woods.mp3');
+
+        // --- Keep Procedural Generation for Missing Assets ---
+
+        // Old Procedural Assets (Retained if no replacement)
+        // this.createPixelTexture('floor_wood', SPRITES.floor_wood); // Keeping procedural wood floor
+        // this.createPixelTexture('wall', SPRITES.wall_stone); // Keeping procedural wall
+        // this.createPixelTexture('bookshelf', SPRITES.bookshelf); // Keeping procedural bookshelf
 
         // --- SNES Assets Generation (High Quality) ---
-        // UI Window (9-Slice)
-        const uiScale = 1; // 1:1 pixel mapping
-        this.createSNESTexture('ui_window_tl', UI_ASSETS.window_tl, uiScale);
-        this.createSNESTexture('ui_window_t', UI_ASSETS.window_t, uiScale);
-        this.createSNESTexture('ui_window_tr', UI_ASSETS.window_tr, uiScale);
-        this.createSNESTexture('ui_window_l', UI_ASSETS.window_l, uiScale);
-        this.createSNESTexture('ui_window_c', UI_ASSETS.window_c, uiScale);
-        this.createSNESTexture('ui_window_r', UI_ASSETS.window_r, uiScale);
-        this.createSNESTexture('ui_window_bl', UI_ASSETS.window_bl, uiScale);
-        this.createSNESTexture('ui_window_b', UI_ASSETS.window_b, uiScale);
-        this.createSNESTexture('ui_window_br', UI_ASSETS.window_br, uiScale);
-
-        // Forest Tiles
+        // Village Tiles (Walls, Roofs - retained as no replacements found)
         const tileScale = 1;
-        this.createSNESTexture('tile_grass', FOREST_ASSETS.grass, tileScale);
-        this.createSNESTexture('tile_grass_var', FOREST_ASSETS.grass_var, tileScale);
-        this.createSNESTexture('tile_dirt', FOREST_ASSETS.dirt, tileScale);
-        this.createSNESTexture('obj_tree_trunk', FOREST_ASSETS.tree_trunk, tileScale);
-        this.createSNESTexture('obj_tree_top', FOREST_ASSETS.tree_top, tileScale);
-
-        // Village Tiles
         this.createSNESTexture('roof_red_l', VILLAGE_ASSETS.roof_red_l, tileScale);
         this.createSNESTexture('roof_red_c', VILLAGE_ASSETS.roof_red_c, tileScale);
         this.createSNESTexture('roof_red_r', VILLAGE_ASSETS.roof_red_r, tileScale);
         this.createSNESTexture('wall_plaster', VILLAGE_ASSETS.wall_plaster, tileScale);
         this.createSNESTexture('wall_window', VILLAGE_ASSETS.wall_window, tileScale);
         this.createSNESTexture('wall_door', VILLAGE_ASSETS.wall_door, tileScale);
-        this.createSNESTexture('obj_fence', VILLAGE_ASSETS.fence, tileScale);
+        // this.createSNESTexture('obj_fence', VILLAGE_ASSETS.fence, tileScale); // Replaced by obj_fence image
 
         // New Building Assets
         this.createSNESTexture('forge_anvil', BUILDING_ASSETS.forge_anvil, tileScale);
@@ -61,24 +68,23 @@ export class BootScene extends Phaser.Scene {
         this.createSNESTexture('crop_wheat', BUILDING_ASSETS.crop_wheat, tileScale);
         this.createSNESTexture('crop_veg', BUILDING_ASSETS.crop_veg, tileScale);
         this.createSNESTexture('stall_roof', BUILDING_ASSETS.stall_roof, tileScale);
-        this.createSNESTexture('obj_crate', BUILDING_ASSETS.crate, tileScale);
+        // this.createSNESTexture('obj_crate', BUILDING_ASSETS.crate, tileScale); // Replaced by obj_crate image
 
-        // NPC Procedural Generation
+        // NPC Procedural Generation (Keep for variety)
         this.generateNPCTextures(tileScale);
 
-        // Cama (caso especial, tal vez reusar o crear textura más grande)
-        // Por simplicidad, usamos el 16x16 escalado
+        // Misc Procedural (Bed, Table, Rug) - Keep as no direct replacement
         this.createPixelTexture('bed', SPRITES.bed);
 
-        // Mesa redonda (Manual, porque círculo es difícil en grid de 16x16 estricto sin verse raro)
         const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        // Table
         graphics.fillStyle(0x5d4037);
         graphics.fillCircle(16, 16, 14);
         graphics.fillStyle(0xd7ccc8);
         graphics.fillCircle(16, 16, 8);
         graphics.generateTexture('table', 32, 32);
 
-        // Alfombra de Salida (Manual simple)
+        // Rug
         graphics.clear();
         graphics.fillStyle(0xc0392b);
         graphics.fillRect(0, 0, 32, 24);
@@ -86,24 +92,13 @@ export class BootScene extends Phaser.Scene {
         graphics.strokeRect(0, 0, 32, 24);
         graphics.generateTexture('rug_exit', 32, 24);
 
-        // Background Batalla (Procedural)
+        // Background Batalla
         graphics.clear();
         graphics.fillStyle(0x2c3e50);
         graphics.fillRect(0, 0, 800, 600);
         graphics.generateTexture('background', 800, 600);
 
-        // --- Carga de Assets Reales ---
-        // Aquí cargamos la imagen de referencia para probar el motor
-        this.load.image('bg_forest', 'assets/backgrounds/bg_forest.jpg');
-
-        // Hero Sprites
-        this.load.spritesheet('hero', 'assets/images/hero_spritesheet.png', {
-            frameWidth: 154,
-            frameHeight: 210
-        });
-        this.load.image('hero_portrait', 'assets/images/hero_portrait.png');
-
-        // --- Barra de carga ---
+        // --- Loading Bar ---
         const progressBar = this.add.graphics();
         const progressBox = this.add.graphics();
         progressBox.fillStyle(0x222222, 0.8);
@@ -122,13 +117,33 @@ export class BootScene extends Phaser.Scene {
     }
 
     create() {
+        // Generate Sliced UI Textures from loaded image
+        this.sliceUI('ui_base', 8); // Assume 8px borders
+
+        // Generate procedural textures that needed to be created
+        // (Move procedural calls here? No, textures.addCanvas works immediately but preload is better for logical flow.
+        // However, addCanvas during preload is fine.)
+
+        this.createProceduralWood(); // Moved here to keep preload clean-ish
+
         this.createAnimations();
         console.log('BootScene complete. Starting VillageScene...');
         this.scene.start('VillageScene');
     }
 
+    createProceduralWood() {
+         this.createPixelTexture('floor_wood', SPRITES.floor_wood);
+         this.createPixelTexture('wall', SPRITES.wall_stone);
+         this.createPixelTexture('bookshelf', SPRITES.bookshelf);
+    }
+
     createAnimations() {
-        // Hero Animations (Right facing only in sheet)
+        // Hero Animations (Gabe)
+        // 24x24 frames. File 168x24. 7 frames.
+        // Assume: 0-3 Idle? 4-6 Run?
+        // Or: 0 Idle. 1-6 Run?
+        // Let's try: Idle: 0. Walk: 1,2,3,4,5,6.
+
         this.anims.create({
             key: 'hero-idle-side',
             frames: [ { key: 'hero', frame: 0 } ],
@@ -137,12 +152,12 @@ export class BootScene extends Phaser.Scene {
 
         this.anims.create({
             key: 'hero-walk-side',
-            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
-            frameRate: 8,
+            frames: this.anims.generateFrameNumbers('hero', { start: 1, end: 6 }),
+            frameRate: 10,
             repeat: -1
         });
 
-        // Mapped animations for Up/Down (reusing side)
+        // Reusing side for Up/Down for now (Gabe sprite is side-view)
         this.anims.create({
             key: 'hero-idle-down',
             frames: [ { key: 'hero', frame: 0 } ],
@@ -150,8 +165,8 @@ export class BootScene extends Phaser.Scene {
         });
         this.anims.create({
             key: 'hero-walk-down',
-            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
-            frameRate: 8,
+            frames: this.anims.generateFrameNumbers('hero', { start: 1, end: 6 }),
+            frameRate: 10,
             repeat: -1
         });
 
@@ -162,17 +177,46 @@ export class BootScene extends Phaser.Scene {
         });
         this.anims.create({
             key: 'hero-walk-up',
-            frames: this.anims.generateFrameNumbers('hero', { frames: [2, 3, 4, 5] }),
-            frameRate: 8,
+            frames: this.anims.generateFrameNumbers('hero', { start: 1, end: 6 }),
+            frameRate: 10,
             repeat: -1
         });
     }
 
-    createPixelTexture(key, spriteData, scale = 2) {
-        // spriteData es array de strings 16x16
-        // scale define qué tan grandes son los "píxeles" en la textura final
-        // (Aunque Phaser puede escalar el Sprite, hacerlo aquí da textura crisp)
+    sliceUI(key, corner) {
+        // Create 9 textures from the base image
+        const src = this.textures.get(key).getSourceImage();
+        const w = src.width;
+        const h = src.height;
 
+        // Parts
+        // tl, t, tr
+        // l, c, r
+        // bl, b, br
+
+        const regions = {
+            'ui_window_tl': [0, 0, corner, corner],
+            'ui_window_t':  [corner, 0, w - 2*corner, corner],
+            'ui_window_tr': [w - corner, 0, corner, corner],
+            'ui_window_l':  [0, corner, corner, h - 2*corner],
+            'ui_window_c':  [corner, corner, w - 2*corner, h - 2*corner],
+            'ui_window_r':  [w - corner, corner, corner, h - 2*corner],
+            'ui_window_bl': [0, h - corner, corner, corner],
+            'ui_window_b':  [corner, h - corner, w - 2*corner, corner],
+            'ui_window_br': [w - corner, h - corner, corner, corner]
+        };
+
+        for (const [newKey, rect] of Object.entries(regions)) {
+            const canvas = document.createElement('canvas');
+            canvas.width = rect[2];
+            canvas.height = rect[3];
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(src, rect[0], rect[1], rect[2], rect[3], 0, 0, rect[2], rect[3]);
+            this.textures.addCanvas(newKey, canvas);
+        }
+    }
+
+    createPixelTexture(key, spriteData, scale = 2) {
         const width = spriteData[0].length;
         const height = spriteData.length;
 
@@ -188,7 +232,6 @@ export class BootScene extends Phaser.Scene {
                 const color = PALETTE[char];
 
                 if (color !== null && color !== undefined) {
-                    // Convertir hex 0xRRGGBB a string "#RRGGBB"
                     const colorStr = '#' + color.toString(16).padStart(6, '0');
                     ctx.fillStyle = colorStr;
                     ctx.fillRect(x * scale, y * scale, scale, scale);
@@ -225,7 +268,6 @@ export class BootScene extends Phaser.Scene {
     }
 
     generateNPCTextures(scale) {
-        // Define palettes for different roles
         const palettes = {
             'blacksmith': { 'H': 0x000000, 'S': 0xffccaa, 'C': 0x5d4037, 'D': 0x3e2723, 'F': 0x111111, '@': 0x000000 },
             'villager_f': { 'H': 0x8d6e63, 'S': 0xffccaa, 'C': 0xe91e63, 'D': 0xc2185b, 'F': 0x3e2723, '@': 0x000000 },
