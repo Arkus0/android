@@ -144,21 +144,23 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
      0 .07em .02em rgba(0,0,0,.12);
 }
 
-/* Cara: ojos + boca sobre la letra */
+/* Cara: ojos + boca sobre la letra.
+   Ojos pequeños y arriba del todo para NO tapar el trazo de la letra
+   (si son grandes, cuesta distinguir qué letra es). */
 .letter-char .face {
   position: absolute;
-  top: .26em;
+  top: .16em;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: .1em;
+  gap: .08em;
   z-index: 2;
 }
 .letter-char .eye {
-  width: .27em;
-  height: .31em;
+  width: .18em;
+  height: .21em;
   background: #fff;
-  border: .025em solid rgba(0,0,0,.3);
+  border: .02em solid rgba(0,0,0,.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -167,19 +169,19 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 }
 .letter-char .eye:last-child { animation-delay: .15s; }
 .letter-char .pupil {
-  width: .12em;
-  height: .12em;
+  width: .085em;
+  height: .085em;
   background: #222;
   border-radius: 50%;
 }
 .letter-char .mouth {
   position: absolute;
-  top: .6em;
+  top: .44em;
   left: 50%;
   transform: translateX(-50%);
-  width: .32em;
-  height: .17em;
-  border: .045em solid #6b2e00;
+  width: .24em;
+  height: .12em;
+  border: .04em solid #6b2e00;
   border-top: none;
   border-radius: 0 0 1em 1em;
   z-index: 2;
@@ -189,13 +191,13 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 .letter-char .face::after {
   content: "";
   position: absolute;
-  top: .34em;
-  width: .14em; height: .1em;
+  top: .26em;
+  width: .11em; height: .08em;
   background: rgba(255,120,140,.55);
   border-radius: 50%;
 }
-.letter-char .face::before { left: -.18em; }
-.letter-char .face::after  { right: -.18em; }
+.letter-char .face::before { left: -.15em; }
+.letter-char .face::after  { right: -.15em; }
 
 /* Accesorio de profesión (sombrero/herramienta) */
 .letter-char .accessory {
@@ -243,9 +245,9 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 .letter-char.oops { animation: shake .4s ease-in-out; }
 .letter-char.oops .mouth {
   border-radius: 1em 1em 0 0;
-  border-top: .045em solid #6b2e00;
+  border-top: .04em solid #6b2e00;
   border-bottom: none;
-  top: .68em;
+  top: .5em;
 }
 
 /* Letras "hechas" en sílabas/palabras */
