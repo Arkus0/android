@@ -146,8 +146,9 @@ JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 1
 
 ## 🧭 Cómo continuar
 
-Toda la guía técnica para retomar el desarrollo (arquitectura de `game.js`,
-reglas, pruebas, despliegue e IDs de Vercel) está en **[`CLAUDE.md`](CLAUDE.md)**.
+Toda la guía técnica para retomar el desarrollo (arquitectura de
+`data.js`/`core.js`/`modos.js`, reglas, pruebas, despliegue e IDs de Vercel)
+está en **[`CLAUDE.md`](CLAUDE.md)**.
 
 ### Ideas pendientes
 - Aún más cuentos (y más largos).

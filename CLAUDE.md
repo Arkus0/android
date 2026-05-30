@@ -176,7 +176,7 @@ seleccionan por `data-modo`).
 - Para actualizar producción: **abrir PR a `main` y hacer merge** (con permiso
   del usuario). Cada merge a `main` dispara el deploy de producción.
 - Tras desplegar, verificar con `web_fetch_vercel_url` sobre el dominio de
-  producción (revisar un marcador del cambio, p.ej. en `index.html` o `game.js`).
+  producción (revisar un marcador del cambio, p.ej. en `index.html` o `modos.js`).
 
 ## 7. Convenciones y gotchas
 
