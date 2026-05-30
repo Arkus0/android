@@ -1,13 +1,14 @@
 /* =====================================================================
    Test de humo de "Las Letras Vivas" con jsdom.
-   Simula teclado FÍSICO y TÁCTIL en los 9 modos y comprueba que no salta
-   ninguna excepción. No es exhaustivo: detecta errores de carga/runtime.
+   Carga los 3 scripts (data.js → core.js → modos.js) y simula teclado
+   FÍSICO y TÁCTIL en los 13 modos (incluidos los 4 juegos de pulsar) +
+   perfiles + separación PC/tablet, comprobando que no salta ninguna
+   excepción. No es exhaustivo: detecta errores de carga/runtime.
 
    Uso:
-     node --check game.js
+     node --check data.js && node --check core.js && node --check modos.js
      npm install jsdom --no-save --prefix /tmp/jsdomtest
      JSDOM_DIR=/tmp/jsdomtest node test/smoke.js
-   (también funciona si jsdom está instalado normalmente como dependencia)
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -49,44 +50,90 @@ window.HTMLElement.prototype.getBoundingClientRect = () => ({ left: 100, top: 10
 window.document.documentElement.requestFullscreen = () => {};
 window.HTMLElement.prototype.requestFullscreen = function () {};
 Object.defineProperty(window.document, 'fullscreenElement', { get() { return null; }, configurable: true });
+// Simulamos una TABLET (puntero "grueso"): así se pinta el teclado en pantalla.
+window.matchMedia = q => ({ matches: /coarse/.test(q), media: q, onchange: null,
+  addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
 
-// --- cargar el juego ---
-const code = fs.readFileSync(path.join(__dirname, '..', 'game.js'), 'utf8');
-const script = window.document.createElement('script');
-script.textContent = code;
-try { window.document.body.appendChild(script); } catch (e) { errores.push('carga: ' + e.message); }
+// --- cargar el juego (3 scripts en orden) ---
+['data.js', 'core.js', 'modos.js'].forEach(f => {
+  const code = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  const script = window.document.createElement('script');
+  script.textContent = code;
+  try { window.document.body.appendChild(script); } catch (e) { errores.push('carga ' + f + ': ' + e.message); }
+});
 
 const doc = window.document;
 const press = key => { try { doc.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); } catch (e) { errores.push('press ' + key + ': ' + e.stack); } };
 const click = (n, et) => { if (!n) return errores.push('click no encontrado: ' + et); try { n.click(); } catch (e) { errores.push('click ' + et + ': ' + e.stack); } };
 const clickSel = sel => click(doc.querySelector(sel), sel);
+const card = id => doc.querySelector('.card[data-modo="' + id + '"]');
 const chars = () => [...doc.querySelectorAll('#stage .fila-letras .letter-char')];
 const kteclas = () => [...doc.querySelectorAll('#controles .ktecla')];
 const clickLetra = L => { const b = kteclas().find(x => x.textContent.toLowerCase() === L); b ? b.click() : errores.push('ktecla no encontrada: ' + L); };
 
 // ===== recorrido =====
 click(doc.getElementById('app'), '#app (intro->home)');
-if (doc.querySelectorAll('.card').length !== 9) errores.push('Se esperaban 9 tarjetas, hay ' + doc.querySelectorAll('.card').length);
+if (doc.querySelectorAll('.card').length !== 13) errores.push('Se esperaban 13 tarjetas, hay ' + doc.querySelectorAll('.card').length);
 click(doc.querySelectorAll('.boton-hud')[1], 'fullscreen');
-click(doc.querySelector('.ajustes .badge'), 'badge');
+click(doc.querySelectorAll('.ajustes .badge')[1], 'badge voz'); // toggla la voz
 
-// Palabras tocando el teclado en pantalla
-click(doc.querySelectorAll('.card')[4], 'card palabras');
-if (kteclas().length === 0) errores.push('No hay teclado en pantalla en modo palabras');
+// --- PERFILES: abrir, crear uno nuevo y volver ---
+press('p');
+if (!doc.querySelector('.perfiles')) errores.push('No se abrió la pantalla de perfiles');
+const inp = doc.querySelector('.perfil-nombre'); if (inp) inp.value = 'Test';
+click(doc.querySelector('.perfil-form .bcontrol.grande'), 'crear perfil');
+if (!card('explora')) errores.push('Tras crear perfil no se volvió al menú');
+
+// --- JUEGO 1: TOCA Y DESCUBRE (pulsar emojis) ---
+click(card('toca'), 'card toca');
+const tilesToca = [...doc.querySelectorAll('.grid-toca .emoji-tile')];
+if (tilesToca.length === 0) errores.push('Toca y descubre: no hay dibujos');
+tilesToca.forEach(t => t.click());
+if (!doc.querySelector('#toca-banner .letter-char')) errores.push('Toca y descubre: no apareció la palabra');
+press('Escape');
+
+// --- JUEGO 2: ¿CUÁL EMPIEZA POR…? ---
+click(card('empieza'), 'card empieza');
+let objE = (doc.querySelector('#stage .fila-letras .letter-char') || {}).dataset;
+const opc = doc.querySelectorAll('.grid-opciones .emoji-tile');
+if (opc.length === 0) errores.push('Empieza por: no hay opciones');
+if (objE) { const ok = doc.querySelector('.grid-opciones .emoji-tile[data-letra="' + objE.letra + '"]'); click(ok, 'opcion correcta empieza'); }
+press('Escape');
+
+// --- JUEGO 3: CAZA LA LETRA ---
+click(card('caza'), 'card caza');
+const objC = (doc.querySelector('.caza-objetivo .letter-char') || {}).dataset;
+if (doc.querySelectorAll('.grid-caza .caza-tile').length === 0) errores.push('Caza: no hay letras');
+if (objC) click(doc.querySelector('.grid-caza .caza-tile[data-letra="' + objC.letra + '"]'), 'caza correcta');
+press('Escape');
+
+// --- JUEGO 4: PAREJAS (memory) ---
+click(card('parejas'), 'card parejas');
+const cartas = [...doc.querySelectorAll('.grid-parejas .carta')];
+if (cartas.length === 0) errores.push('Parejas: no hay cartas');
+// localizar una pareja (dos cartas con la misma letra) y voltearlas
+const porLetra = {};
+cartas.forEach(c => { (porLetra[c.dataset.letra] = porLetra[c.dataset.letra] || []).push(c); });
+const par = Object.values(porLetra).find(a => a.length >= 2);
+if (par) { par[0].click(); par[1].click(); if (!doc.querySelector('.grid-parejas .carta.hecha') && !doc.querySelector('.grid-parejas .carta.abierta')) { /* la marca llega por temporizador */ } }
+press('Escape');
+
+// --- Palabras tocando el teclado en pantalla (tablet) ---
+click(card('palabras'), 'card palabras');
+if (kteclas().length === 0) errores.push('No hay teclado en pantalla en modo palabras (tablet)');
 chars().map(c => c.dataset.letra).forEach(clickLetra);
-click(doc.querySelectorAll('.boton-hud')[0], 'volver');
+press('Escape');
 
-// Galería táctil
-click(doc.querySelectorAll('.card')[1], 'card galeria');
+// --- Galería táctil ---
+click(card('galeria'), 'card galeria');
 [...doc.querySelectorAll('#controles .barra .bcontrol')].forEach((b, i) => i < 1 && b.click());
 clickLetra('m');
 press('Escape');
 
-// Cuentos: tecleando cada palabra (con el teclado en pantalla) hasta acabar una página
-click(doc.querySelectorAll('.card')[8], 'card cuentos');
+// --- Cuentos: tecleando cada palabra (teclado en pantalla) hasta acabar una página ---
+click(card('cuentos'), 'card cuentos');
 if (kteclas().length === 0) errores.push('Cuentos: no hay teclado en pantalla');
 const palabrasPag = doc.querySelectorAll('#stage .frase .palabra-frase').length;
-// Tras teclear la 1ª palabra, su span debe quedar marcado como leído y avanzar
 const prim = [...doc.querySelectorAll('#cuento-word .letter-char')].map(c => c.dataset.letra);
 prim.forEach(clickLetra);
 if (!doc.querySelector('#stage .frase .palabra-frase.leida')) errores.push('Cuentos: la palabra tecleada no avanzó');
@@ -100,26 +147,35 @@ if (leidas !== palabrasPag) errores.push('Cuentos: página no completada (' + le
 press('a'); // tecla durante la transición de página: debe ignorarse sin error
 press('Escape');
 
-// Frases por toque
-click(doc.querySelectorAll('.card')[7], 'card frases');
+// --- Frases por toque ---
+click(card('frases'), 'card frases');
 const nw = doc.querySelectorAll('#stage .frase .palabra-frase').length;
 for (let i = 0; i < nw + 2; i++) clickSel('.bcontrol.grande');
 press('Escape');
 
-// Teclado físico + nivel + dictado + layout ABC
-press('t'); press('n');         // ABC + nivel Medio
-press('3');                      // busca
-const t = doc.querySelector('#stage .letter-char').dataset.letra;
-clickLetra(t);                   // acertar tocando el teclado ABC
-press('Escape');
-press('7');                      // dictado
+// --- Teclado físico + nivel + dictado + layout ABC ---
+press('t'); press('n');          // ABC + nivel Medio (ajustes del menú)
+click(card('dictado'), 'card dictado');
 chars().map(c => c.dataset.letra).forEach(clickLetra);
 press('Escape');
-press('4'); chars().map(c => c.dataset.letra).forEach(press); // sílabas con teclado físico
+click(card('silabas'), 'card silabas');
+chars().map(c => c.dataset.letra).forEach(press); // sílabas con teclado físico
 press('Escape');
-press('6'); chars().filter(c => c.classList.contains('slot')).map(c => c.dataset.letra).forEach(press); // letra que falta
+click(card('busca'), 'card busca');
+{ const t = doc.querySelector('#stage .letter-char').dataset.letra; clickLetra(t); } // acertar tocando el teclado ABC
+press('Escape');
+click(card('falta'), 'card falta'); // letra que falta: rellenar huecos con el teclado físico
+chars().filter(c => c.classList.contains('slot')).map(c => c.dataset.letra).forEach(press);
+press('Escape');
+
+// --- SEPARACIÓN PC: forzar "teclado en pantalla = Nunca" y comprobar que NO se pinta ---
+press('k'); press('k');           // auto -> si -> no
+click(card('palabras'), 'card palabras (PC)');
+if (kteclas().length !== 0) errores.push('En modo "Nunca" no debería haber teclado en pantalla');
+chars().map(c => c.dataset.letra).forEach(press); // se juega con teclado físico
+press('Escape');
 
 setTimeout(() => {
-  if (errores.length === 0) { console.log('✅ SIN ERRORES (teclado físico + táctil, 9 modos)'); process.exit(0); }
+  if (errores.length === 0) { console.log('✅ SIN ERRORES (13 modos · teclado físico + táctil · perfiles · PC/tablet)'); process.exit(0); }
   console.log('❌ ERRORES:'); errores.forEach(e => console.log(' - ' + e)); process.exit(1);
 }, 3000);

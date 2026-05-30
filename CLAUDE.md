@@ -24,8 +24,10 @@ El usuario es un peque con **altas capacidades** que está aprendiendo a leer
 ## 2. Estado actual (live)
 
 - **Producción:** https://android-coral-ten.vercel.app (rama `main`).
-- Versión con **9 modos**, **3 niveles**, teclado físico + táctil, voz por
-  nombre/sonido, colección de 27 letras y modo **Cuentos**.
+- Versión con **13 modos** (5 de **pulsar** + 8 de **escribir/leer**),
+  **3 niveles**, teclado físico + táctil, voz por nombre/sonido, colección de
+  27 letras, **Cuentos**, **perfiles por niño** (con copia exportable) y
+  **PWA** instalable/offline.
 
 ## 3. Stack y archivos
 
@@ -34,73 +36,102 @@ Pensado para abrirse incluso con **doble clic** en `index.html` (por eso se usa
 JavaScript clásico con `<script src>`, **no ES modules**, que romperían por CORS
 en `file://`).
 
+La lógica está **separada en 3 scripts clásicos** que comparten el espacio de
+nombres global **`LV`** y se cargan EN ORDEN (`data.js` → `core.js` → `modos.js`).
+No son módulos: cada uno escribe/lee en `LV`.
+
 ```
-index.html   Estructura: #app (juego), #controles (teclado táctil), #fx (confeti) + metas PWA
-style.css    Apariencia, animaciones de las letras, layout responsive y teclado en pantalla
-game.js      TODA la lógica (IIFE, ES5: var + function declarations)
-test/smoke.js  Test de humo con jsdom (ver §5)
-README.md    Guía para el usuario/jugador + estado + roadmap
-CLAUDE.md    Este documento
+index.html        #app (juego), #controles (teclado táctil), #fx (confeti) + metas/manifest PWA
+style.css         Apariencia, animaciones, layout responsive, teclado en pantalla y juegos de pulsar
+data.js           DATOS: LV.INFO, LV.PALABRAS, LV.FRASES, LV.CUENTOS, layouts, niveles, avatares…
+core.js           MOTOR: perfiles+persistencia, audio, DOM/personajes, efectos, HUD, controles,
+                  detección PC/tablet, registro del SW. Expone helpers en LV.
+modos.js          MODOS: menú, pantalla de perfiles y los 13 juegos + manejarTecla() (entrada única).
+manifest.webmanifest  Manifiesto PWA (icono, display fullscreen, theme).
+sw.js             Service worker: cachea la app shell para offline (sube CACHE al cambiar archivos).
+icon.svg / icon-*.png  Iconos de la app (PNG generados con tools/gen-icons.js).
+tools/gen-icons.js     Generador de los PNG del icono (Node puro, zlib; herramienta de un solo uso).
+test/smoke.js     Test de humo con jsdom (ver §5)
+README.md         Guía para el usuario/jugador + estado + roadmap
+CLAUDE.md         Este documento
 ```
 
 - **Gráficos:** emojis (no hay imágenes). Fuente: Comic Sans / redondeada.
 - **Voz:** Web Speech API (`speechSynthesis`), español (`es-ES`).
 - **Sonidos:** WebAudio (osciladores), sin archivos de audio.
-- **Persistencia:** `localStorage` clave `"letrasVivas"` → `{voz, modoVoz, minus,
-  nivel, kbLayout, estrellas, desc[]}`.
+- **Persistencia:** `localStorage` clave `"letrasVivas"` → **multi-perfil**:
+  `{ v:2, activo:<id>, perfiles:{ <id>:{nombre, emoji, voz, modoVoz, minus,
+  nivel, kbLayout, kbModo, estrellas, desc[], stats{letra:{ok,fail}} } } }`.
+  El formato plano antiguo se **migra** a un perfil "Peque" al cargar.
+  `core.js` mantiene `S` (espejo del perfil activo) y `persistir()` lo vuelca.
 
-## 4. Mapa de `game.js`
+## 4. Mapa del código (data.js / core.js / modos.js)
 
-Es un único IIFE con secciones numeradas:
+Todo comparte el objeto global **`LV`**. Orden de carga obligatorio:
+`data.js` → `core.js` → `modos.js`.
 
-1. **DATOS** — `INFO` (cada letra: `n` nombre, `p` profesión, `e` emoji,
-   `s` sonido fonético), `PALABRAS` (`w` palabra, `e` emoji, `d` dificultad 0/1/2),
-   `FRASES`, `CUENTOS` (título + páginas), `CONS_SIL`, `TRABADAS`,
-   `LAYOUT_QWERTY`/`LAYOUT_ABC`, `NIVELES`, `ABECEDARIO`.
-2. **ESTADO** — objeto `S` (pantalla actual, ajustes, sub-estados por modo) +
-   `persistir()`.
-3. **AUDIO** — `hablar()`, `decirLetra()` (respeta nombre/sonido),
-   `pedirLetra()`, efectos `sfx*`.
-4. **UTILIDADES DOM** — `el/limpiar/mostrar/azar`, `tap()` (asocia toque/clic),
-   `personaje()` (letra viva), `ranura()` (hueco oculto), `revelar()`,
-   `tam(rem)` (tamaño responsive `min(rem, 1.7*vmin)`).
-5. **EFECTOS** — `confeti()`, `cartel()`, `sumarEstrella()`, `descubrir()`.
-6. **HUD** — `hudVisible()`, `pantallaCompleta()` (Fullscreen API con prefijo
-   webkit). El botón **⛶ está siempre**; ⬅️ y ⭐ solo dentro de un juego.
-7. **CONTROLES TÁCTILES** — `teclado()` (genera el teclado en pantalla según
-   `S.kbLayout` y `S.minus`), `pintarControles(tipo)` con tipos
-   `none | teclado | galeria | frases`.
-8. **PANTALLAS/MENÚ** — `MODOS` (lista de los 9 modos) y una función
-   `iniciar*`/`nueva*` por modo que renderiza dentro de `#app`.
-9. **ENTRADA** — **clave**: `manejarTecla(k)` es el router central por
-   `S.pantalla`. Tanto el `keydown` físico como cada botón táctil llaman a
-   `manejarTecla(...)`. Para añadir teclas/acciones, edita ahí.
-10. **ARRANQUE** — `pantallaIntro()`.
+**`data.js`** — solo datos en `LV.*`: `INFO` (cada letra: `n` nombre, `p`
+profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
+`FRASES`, `CUENTOS` (título + páginas), `CONS_SIL`, `TRABADAS`,
+`LAYOUT_QWERTY`/`LAYOUT_ABC`, `NIVELES`, `ABECEDARIO`, `ORDEN_ABC`, `VOCALES`,
+`AVATARES`.
 
-### Los 9 modos (`S.pantalla`)
-`explora` · `galeria` · `busca` · `silabas` · `palabras` · `falta` (letra que
-falta) · `dictado` (escucha y escribe) · `frases` · `cuentos`.
+**`core.js`** (IIFE; expone helpers en `LV`):
+- **PERFILES + persistencia** — `cargarBD()` (con migración del formato
+  antiguo), `S` (espejo del perfil activo), `aplicarPerfil()`, `persistir()`,
+  `crearPerfil/cambiarPerfil/renombrarPerfil/borrarPerfil`,
+  `exportarTexto()/importarTexto()` (copia JSON), `registrar(letra, ok)` (stats).
+- **DISPOSITIVO** — `tabletProbable()` (matchMedia pointer coarse/fine + touch)
+  y `tecladoEnPantalla()` (respeta `S.kbModo`: auto/si/no).
+- **AUDIO** — `hablar/cancelarVoz/decirLetra/pedirLetra`, `sfx*` (+`sfxPop`).
+- **DOM + personajes** — `el/limpiar/mostrar/azar/barajar`, `tap()`,
+  `personaje()`, `ranura()`, `revelar()`, `tam(rem)`.
+- **EFECTOS** — `confeti/cartel/sumarEstrella/descubrir`.
+- **HUD** — `hudVisible()`, `pantallaCompleta()`. ⛶ siempre; ⬅️/⭐ en juego.
+- **CONTROLES** — `pintarControles(tipo)` (`none|teclado|galeria|frases`); el
+  teclado de letras solo se pinta si `tecladoEnPantalla()` y entonces añade
+  `body.con-teclado` (el CSS comprime el juego para que no tape letras).
+- **PWA** — `registrarSW()` (solo bajo http/https; en `file://` no hace nada).
 
-- **`frases`** = lectura guiada: se pulsa Espacio / "Siguiente ▶" y oye cada
-  palabra (no se teclea).
-- **`cuentos`** = lectura ACTIVA: el niño **teclea cada palabra entera** para
-  avanzar (decisión del usuario), oye la palabra al completarla, avanza por
-  páginas y celebra al terminar la historia. Usa controles de **teclado**.
+**`modos.js`** (IIFE; toma helpers de `LV`):
+- `MODOS` (lista de los 13 modos; cada `card` lleva `data-modo`), `INICIAR`
+  (mapa id→`iniciar*`), `abrirModo()`.
+- Pantallas: `pantallaIntro/Home/Perfil` + una `iniciar*`/`nueva*` por modo.
+- **ENTRADA** — **clave**: `manejarTecla(k)` es el router central por
+  `S.pantalla`; se expone como `LV.manejarTecla` (lo invocan el `keydown`
+  físico y cada botón/tecla táctil del núcleo). Para añadir teclas, edita ahí.
+- **ARRANQUE** — `pintarHud()` → `LV.registrarSW()` → `pantallaIntro()`.
+
+### Los 13 modos (`S.pantalla`)
+**Pulsar (sin teclear):** `explora` · `toca` (toca dibujo → palabra) ·
+`empieza` (¿cuál empieza por…?) · `caza` (toca la letra pedida) ·
+`parejas` (memory letra↔dibujo).
+**Escribir/leer:** `galeria` · `busca` · `silabas` · `palabras` ·
+`falta` · `dictado` · `frases` · `cuentos`.
+
+- Los juegos de **pulsar** usan `pintarControles("none")` (sin teclado; tienen
+  sus propios objetivos grandes tocables). Aun así aceptan teclado físico
+  donde tiene sentido (p. ej. `caza` y `empieza` por la letra; `toca` con
+  Espacio para barajar).
+- **`frases`** = lectura guiada (Espacio/"Siguiente ▶", no se teclea).
+- **`cuentos`** = lectura ACTIVA: el niño **teclea cada palabra entera**.
   Cada cuento = `{ titulo, e, paginas:[{t, e}] }` con frases CORTAS. El texto
-  mostrado puede llevar tildes/mayúsculas; `normaliza()` las pasa a letras base
-  para teclear (conserva la `ñ`). Añadir cuentos = añadir entradas a `CUENTOS`.
+  mostrado puede llevar tildes; `normaliza()` las pasa a letras base (conserva
+  la `ñ`). Añadir cuentos = entradas en `CUENTOS` (en `data.js`).
 
 ### Ajustes (en el menú, tecla o tocar el badge)
-`V` voz on/off · `F` nombre/sonido · `L` abc/ABC · `N` nivel (Fácil/Medio/Difícil)
-· `T` teclado QWERTY/ABC.
+`P` perfil (quién juega) · `V` voz on/off · `F` nombre/sonido · `L` abc/ABC ·
+`N` nivel (Fácil/Medio/Difícil) · `T` teclado QWERTY/ABC · `K` teclado en
+pantalla (Auto/Siempre/Nunca).
 
 ## 5. Cómo probar
 
 No hay navegador en el entorno, pero hay un **test de humo con jsdom** que
-simula teclado físico **y** toques en los 9 modos.
+carga los 3 scripts y simula teclado físico **y** toques en los 13 modos
+(incluidos los 4 juegos de pulsar), más perfiles y la separación PC/tablet.
 
 ```bash
-node --check game.js            # comprueba sintaxis
+node --check data.js && node --check core.js && node --check modos.js  # sintaxis
 
 # instalar jsdom (la red a npm SÍ funciona; vercel.com NO, ver §6)
 npm install jsdom --no-save --prefix /tmp/jsdomtest
@@ -110,8 +141,11 @@ JSDOM_DIR=/tmp/jsdomtest node test/smoke.js
 ```
 
 Debe imprimir `✅ SIN ERRORES`. El test stubea `speechSynthesis`,
-`AudioContext`, `requestAnimationFrame`, `getBoundingClientRect` y la
-Fullscreen API. **Ejecútalo siempre tras tocar `game.js`.**
+`AudioContext`, `requestAnimationFrame`, `getBoundingClientRect`, la
+Fullscreen API y **`matchMedia`** (simula una tablet de puntero "grueso" para
+que se pinte el teclado en pantalla). **Ejecútalo siempre tras tocar el JS.**
+Al añadir un modo nuevo, **añade su recorrido** al test (las tarjetas se
+seleccionan por `data-modo`).
 
 > Verificación visual real (opcional): servir con `python3 -m http.server` y
 > abrir en el navegador, o usar el preview de Vercel (§6).
@@ -153,14 +187,21 @@ Fullscreen API. **Ejecútalo siempre tras tocar `game.js`.**
   tildes. En `FRASES` (solo lectura) sí. En `CUENTOS` el texto mostrado puede
   llevar tildes, pero al teclear se normalizan con `normaliza()` (quita tildes,
   conserva la `ñ`). Para añadir un modo nuevo donde se teclee, normaliza igual.
-- **Mantener clásico:** nada de `import`/`export`, `fetch` ni dependencias.
-  Debe seguir funcionando con doble clic en `index.html`.
+- **Mantener clásico:** nada de `import`/`export`, `fetch` ni dependencias en
+  runtime. Comparten el objeto global `LV`; **respeta el orden de carga**
+  (`data.js` → `core.js` → `modos.js`). Debe seguir funcionando con doble clic
+  en `index.html` (por eso el SW solo se registra bajo http/https).
+- **PWA:** si añades/renombras archivos del runtime, **actualízalos en
+  `sw.js` (`ASSETS`) y sube `CACHE`** (p. ej. `v1`→`v2`) para forzar la
+  actualización offline. Los iconos se regeneran con `node tools/gen-icons.js`.
+- **Perfiles:** no escribas en `localStorage` a mano; cambia `S.*` y llama a
+  `LV.persistir()` (vuelca al perfil activo). El progreso es **por niño**.
 - **Tamaños:** usa `personaje(letra, rem, ...)`; el `rem` se limita con vmin
   para que quepa en tablet/móvil (`tam()`).
-- **Añadir contenido** = editar las tablas de la sección 1 (`INFO`, `PALABRAS`,
+- **Añadir contenido** = editar las tablas de **`data.js`** (`INFO`, `PALABRAS`,
   `FRASES`, `CUENTOS`, `CONS_SIL`, `TRABADAS`). Añadir un **modo** = entrada en
-  `MODOS` + función `iniciar*` + rama en `manejarTecla` + (si toca)
-  `pintarControles`.
+  `MODOS` + función `iniciar*` (en `modos.js`) + `INICIAR[id]` + rama en
+  `manejarTecla` + (si teclea) `pintarControles` + **recorrido en `smoke.js`**.
 - **Secretos:** nunca commitear tokens/keys. (El usuario compartió un token de
   Vercel en el chat que debe **revocar**; no se usó porque la red lo bloquea.)
 - **No** incluir identificadores de modelo ni metadatos de la sesión en
@@ -168,13 +209,24 @@ Fullscreen API. **Ejecútalo siempre tras tocar `game.js`.**
 
 ## 8. Roadmap / próximas ideas (acordadas con el usuario)
 
+### Hecho recientemente
+- **Refactor en `data.js` / `core.js` / `modos.js`** (sigue siendo doble-clic).
+- **4 juegos de pulsar** (lo que más engancha): `toca`, `empieza`, `caza`,
+  `parejas`. El niño se cansa de teclear muchas letras seguidas.
+- **Perfiles por niño** con exportar/importar copia (botones 💾/📂 en Perfil).
+- **PWA real** (manifest + `sw.js` offline + icono propio).
+- **Separación PC/tablet** del teclado en pantalla (`kbModo` auto/si/no) y
+  ajuste para que en tablet no tape las letras (`body.con-teclado` + tamaños
+  de tecla por vw/vh).
+
+### Pendientes
 - **Más cuentos** (al usuario le ilusiona especialmente: "leer = conocer
   historias"). Hay 9 (clásicos, Grimm y uno de un ratón); se pueden añadir más
   o más largos en `CUENTOS`. Nota IP: evitar personajes con copyright (p. ej.
   Mickey) usando equivalentes genéricos.
-- **Panel para padres**: qué letras/sílabas le cuestan más (registrar aciertos
-  /fallos por letra en `localStorage` y mostrar un resumen).
-- **Forma la palabra** (anagramas con letras desordenadas).
-- **Adivinanzas** (pista + escribir la respuesta).
-- **Temas de palabras** elegibles (animales, espacio, dinosaurios…).
+- **Panel para padres**: ya se registran aciertos/fallos por letra
+  (`stats{letra:{ok,fail}}` en cada perfil, vía `LV.registrar()`); falta la
+  **pantalla** que muestre qué letras cuestan más.
+- **Más juegos de pulsar** y temas de palabras (animales, espacio…).
+- **Forma la palabra** (anagramas) y **adivinanzas**.
 ```

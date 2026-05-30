@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Las Letras Vivas — juego de lectura</title>
 
-  <!-- Para que en la tablet se pueda "añadir a pantalla de inicio" y abrir a pantalla completa -->
+  <!-- App web instalable (PWA): icono propio, offline y pantalla completa -->
+  <link rel="manifest" href="manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Letras Vivas">
   <meta name="theme-color" content="#aee3ff">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -24,7 +27,10 @@
   <!-- Capa para confeti y efectos -->
   <div id="fx"></div>
 
-  <!-- JavaScript clásico (funciona abriendo el archivo con doble clic) -->
-  <script src="game.js"></script>
+  <!-- JavaScript clásico, en 3 archivos (funciona abriendo el archivo con doble clic).
+       El orden importa: data.js → core.js → modos.js -->
+  <script src="data.js"></script>
+  <script src="core.js"></script>
+  <script src="modos.js"></script>
 </body>
 </html>

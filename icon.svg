@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Las Letras Vivas">
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#aee3ff"/>
+      <stop offset="0.55" stop-color="#d8f3ff"/>
+      <stop offset="1" stop-color="#b6f0a8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="110" ry="110" fill="url(#cielo)"/>
+  <!-- nubes -->
+  <g fill="#ffffff" opacity="0.9">
+    <ellipse cx="120" cy="110" rx="46" ry="26"/>
+    <ellipse cx="160" cy="118" rx="34" ry="20"/>
+    <ellipse cx="400" cy="150" rx="38" ry="22"/>
+  </g>
+  <!-- la A como personaje -->
+  <g>
+    <!-- trazos de la A -->
+    <g fill="none" stroke="#e6194b" stroke-width="58" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 175 390 L 256 150 L 337 390"/>
+      <path d="M 206 305 L 306 305"/>
+    </g>
+    <!-- ojos -->
+    <g>
+      <ellipse cx="232" cy="250" rx="26" ry="30" fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="3"/>
+      <ellipse cx="282" cy="250" rx="26" ry="30" fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="3"/>
+      <circle cx="236" cy="256" r="11" fill="#222"/>
+      <circle cx="286" cy="256" r="11" fill="#222"/>
+    </g>
+    <!-- mejillas -->
+    <ellipse cx="206" cy="288" rx="14" ry="9" fill="rgba(255,120,140,0.6)"/>
+    <ellipse cx="312" cy="288" rx="14" ry="9" fill="rgba(255,120,140,0.6)"/>
+    <!-- sonrisa -->
+    <path d="M 228 296 Q 257 322 286 296" fill="none" stroke="#6b2e00" stroke-width="9" stroke-linecap="round"/>
+  </g>
+</svg>

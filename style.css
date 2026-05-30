@@ -62,6 +62,9 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* "safe center": centra cuando cabe, pero si el contenido es más alto que
+     la zona visible NO recorta por arriba (así no se ocultan letras). */
+  justify-content: safe center;
   text-align: center;
   overflow-y: auto;
   padding: calc(54px + env(safe-area-inset-top)) 8px 6px;
@@ -326,7 +329,7 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  min-height: 40vh;
+  min-height: 28vh;
 }
 .dibujo { font-size: clamp(4rem, 16vw, 9rem); margin-bottom: 6px; }
 .fila-letras { display: flex; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
@@ -432,9 +435,11 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 .ktecla {
   font-family: inherit;
   font-weight: 900;
-  font-size: clamp(1rem, 5vw, 1.9rem);
-  width: clamp(2rem, 8.2vw, 3.3rem);
-  height: clamp(2.3rem, 8.6vw, 3.7rem);
+  /* el teclado se adapta al ANCHO y al ALTO disponibles (vw y vh) para que en
+     la tablet no se "coma" la pantalla ni tape las letras del juego */
+  font-size: max(0.9rem, min(1.9rem, 5vw, 4.4vh));
+  width: max(1.7rem, min(3.3rem, 8.2vw, 7.6vh));
+  height: max(2rem, min(3.7rem, 8.6vw, 8vh));
   border: none;
   border-radius: 12px;
   background: #fff;
@@ -464,3 +469,107 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   transition: transform .4s cubic-bezier(.2,1.4,.4,1);
 }
 .toast.show { transform: translate(-50%, -50%) scale(1); }
+
+/* ====================================================================
+   AJUSTE TABLET: cuando hay teclado en pantalla, comprimimos el juego
+   y alineamos arriba para que ninguna letra quede oculta tras el teclado.
+   ==================================================================== */
+body.con-teclado #app {
+  justify-content: flex-start;
+  padding-top: calc(48px + env(safe-area-inset-top));
+}
+body.con-teclado .stage { min-height: 0; }
+body.con-teclado .prompt { margin-bottom: 8px; font-size: clamp(1.1rem, 3.4vw, 1.8rem); }
+body.con-teclado .dibujo { font-size: clamp(2.4rem, 9vmin, 5rem); }
+body.con-teclado .dibujo.cuento-dibujo { font-size: clamp(1.9rem, 6.5vmin, 3rem); }
+
+/* ====================================================================
+   JUEGOS DE PULSAR (Toca y descubre · ¿Empieza por? · Caza · Parejas)
+   ==================================================================== */
+.emoji-grande { font-size: clamp(2.6rem, 12vmin, 5rem); line-height: 1; display: block; }
+.emoji-grande.pop { animation: popin .5s ease-out; }
+
+.emoji-tile {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 6px 0 rgba(0,0,0,.15);
+  width: clamp(74px, 21vw, 132px);
+  height: clamp(74px, 21vw, 132px);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .12s ease, background .2s ease;
+}
+.emoji-tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.emoji-tile.tocado  { background: #fff3bf; }
+.emoji-tile.acierto { background: #c8f7c5; }
+.emoji-tile.happy { animation: happy .7s ease-in-out; }
+.emoji-tile.oops  { animation: shake .4s ease-in-out; }
+
+.grid-toca, .grid-opciones, .grid-caza {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  justify-content: center; align-items: center;
+  max-width: 740px; margin: 6px auto;
+}
+.toca-banner {
+  width: 100%; min-height: 1.4em; margin-bottom: 10px;
+  display: flex; justify-content: center; align-items: center;
+}
+
+/* Caza la letra */
+.caza-objetivo { margin: 0 0 6px; }
+.caza-tile {
+  cursor: pointer; padding: 4px; border-radius: 18px;
+  transition: transform .12s ease, background .15s ease;
+}
+.caza-tile:active { transform: scale(.9); background: rgba(255,255,255,.5); }
+
+/* Parejas (memory) */
+.grid-parejas {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), 1fr);
+  gap: 10px; justify-content: center;
+  max-width: 540px; margin: 0 auto; width: 100%;
+}
+.carta {
+  font-family: inherit; border: none; cursor: pointer;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  background: #7b2fbe; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 5px 0 rgba(0,0,0,.18);
+  transition: transform .15s ease, background .2s ease;
+  overflow: hidden;
+}
+.carta:active { transform: translateY(3px); }
+.carta .carta-dorso { font-size: clamp(1.6rem, 7vw, 2.6rem); }
+.carta.abierta { background: #fff; }
+.carta.abierta .emoji-grande { font-size: clamp(1.8rem, 8vw, 3rem); }
+.carta.hecha { background: #c8f7c5; opacity: .9; cursor: default; }
+.carta.hecha:active { transform: none; }
+
+/* ====================================================================
+   PERFILES (quién juega)
+   ==================================================================== */
+.perfil-card .num-mini { font-size: .85rem; opacity: .7; margin-top: 4px; }
+.perfil-badge { background: #fff3bf; }
+.perfil-form {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; margin-top: 18px; width: 100%; max-width: 540px;
+}
+.perfil-nombre {
+  font-family: inherit; font-size: 1.3rem;
+  padding: 10px 16px; border: 3px solid #ffb800; border-radius: 14px;
+  text-align: center; width: min(320px, 80vw);
+}
+.avatares { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.avatar-op {
+  font-family: inherit; font-size: 1.7rem;
+  width: 48px; height: 48px;
+  border: 3px solid transparent; border-radius: 12px;
+  background: #fff; cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,.12);
+}
+.avatar-op.sel { border-color: #ffb800; transform: translateY(-2px); }
+.bcontrol.borrar { background: #ffd0d0; }
