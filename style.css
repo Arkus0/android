@@ -235,6 +235,20 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   50%     { transform: scale(1.08); }
 }
 
+/* Huecos (letra oculta / por adivinar) */
+.letter-char.slot { animation: none; }
+.letter-char.slot .glyph {
+  color: #b9c2cc;
+  text-shadow: none;
+  border-bottom: .08em solid #9aa6b2;
+  padding: 0 .08em;
+}
+.letter-char.slot.next .glyph {
+  color: #ff8c00;
+  border-bottom-color: #ff8c00;
+  animation: latido 1s ease-in-out infinite;
+}
+
 /* ====================== Menú principal ====================== */
 .cards {
   display: flex;
@@ -301,6 +315,29 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   display: flex; gap: 6px; justify-content: center; align-items: flex-end;
   opacity: .9;
 }
+
+/* Frases (modo lectura) */
+.frase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35em;
+  justify-content: center;
+  align-items: center;
+  max-width: 90%;
+  font-size: clamp(1.6rem, 5vw, 3rem);
+  font-weight: bold;
+}
+.frase .palabra-frase {
+  padding: .05em .25em;
+  border-radius: .25em;
+  transition: transform .18s ease, background .18s ease, color .18s ease;
+}
+.frase .palabra-frase.activa {
+  background: #ffd54a;
+  transform: scale(1.18);
+  box-shadow: 0 4px 0 rgba(0,0,0,.12);
+}
+.frase .palabra-frase.leida { color: #2e9e3f; }
 
 /* Intro */
 .intro-tip {

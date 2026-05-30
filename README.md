@@ -24,27 +24,49 @@ y Safari modernos.)
 | Tecla | Qué hace |
 |-------|----------|
 | **Cualquier letra** | Es la acción principal del juego |
-| **Flechas ⬅️ ➡️** y **Enter** | Elegir modo en el menú |
-| **1 · 2 · 3 · 4** | Entrar directamente a un modo |
-| **Enter / Espacio** | Repetir la voz · pasar a la siguiente |
+| **Flechas** y **Enter** | Elegir modo en el menú (y cambiar de letra en la galería) |
+| **1 … 8** | Entrar directamente a un modo |
+| **Espacio** | Repetir la voz · pasar a la siguiente · avanzar palabra (en Frases) |
+| **Enter** | Repetir la voz / la frase |
 | **Esc** | Volver al menú |
-| **V** (en el menú) | Activar / quitar la voz |
-| **L** (en el menú) | Cambiar entre minúsculas `abc` y MAYÚSCULAS `ABC` |
 
-## 🧩 Los 4 modos (de menos a más difícil)
+### Ajustes (en el menú)
+
+| Tecla | Ajuste |
+|-------|--------|
+| **V** | Activar / quitar la voz |
+| **F** | La voz dice el **Nombre** (eme) o el **Sonido** (mmm) de la letra |
+| **L** | Letras en minúsculas `abc` o MAYÚSCULAS `ABC` |
+| **N** | Nivel: **Fácil → Medio → Difícil** |
+
+## 🧩 Los 8 modos (de explorar a leer)
 
 1. **🅰️ Explorar** — Pulsa cualquier letra y cobra vida: la dice en alto y
-   enseña su profesión. Ideal para empezar y perder el miedo al teclado.
-2. **🔎 Encuentra la letra** — Aparece una letra; hay que pulsar esa tecla.
+   enseña su profesión. Ideal para perder el miedo al teclado.
+2. **📚 Conoce las letras** — Galería del abecedario completo: con las flechas
+   recorre las 27 letras (o pulsa una tecla para saltar a ella) y descúbrelas.
+3. **🔎 Encuentra la letra** — Aparece una letra; hay que pulsar esa tecla.
    Empieza solo con las vocales y va añadiendo letras según acierta.
-3. **🧩 Sílabas** — Lee y escribe sílabas (ma, pe, li, so, tu...), la base
-   de la lectura en español.
-4. **📖 Palabras** — Aparece un dibujo y la palabra; la escribe letra a letra.
+4. **🧩 Sílabas** — Lee y escribe sílabas (ma, pe, li...). En Difícil aparecen
+   sílabas trabadas (bra, pla, tro...).
+5. **📖 Palabras** — Dibujo + palabra; la escribe letra a letra.
+6. **🕵️ Letra que falta** — Una palabra con un hueco (en Difícil, dos); hay que
+   pulsar la letra que falta. Razonar + leer.
+7. **👂 Escucha y escribe** — Oye la palabra y la escribe sin verla (con dibujo
+   de ayuda; en Difícil, sin dibujo: dictado puro).
+8. **💬 Frases** — Lee una frase, palabra a palabra: cada Espacio resalta y lee
+   la siguiente palabra. Fluidez y comprensión.
 
 En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
 suave; tras un par de intentos el juego le da una pista. Cada acierto suma
-una ⭐ y cada 10 estrellas hay una gran fiesta de confeti. El progreso se
-guarda en el propio navegador.
+una ⭐ (fiesta de confeti cada 10) y va completando la colección 📚 de las
+27 letras. **Todo el progreso y los ajustes se guardan en el navegador.**
+
+### Niveles
+- **Fácil:** palabras de 3 letras, sílabas simples, un hueco, dictado con dibujo.
+- **Medio:** palabras de 4-5 letras.
+- **Difícil:** palabras con sílabas trabadas, sílabas trabadas, dos huecos y
+  dictado sin dibujo.
 
 ## 🛠️ Para quien quiera tocar el código
 
@@ -54,5 +76,6 @@ Solo tres archivos, sin frameworks ni compilación:
 - `style.css` — apariencia y animaciones de las letras.
 - `game.js` — toda la lógica (datos de las letras, modos, voz y efectos).
 
-Para cambiar las palabras, las profesiones o las sílabas, edita las tablas
-`INFO`, `PALABRAS` y `CONS_SIL` al principio de `game.js`.
+Para cambiar el contenido, edita al principio de `game.js` las tablas:
+`INFO` (letras, profesiones y sonidos), `PALABRAS` (palabras + dibujo +
+dificultad), `FRASES`, `CONS_SIL` y `TRABADAS`.
