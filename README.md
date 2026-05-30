@@ -7,30 +7,42 @@ asociar cada letra con su sonido inicial.
 
 Está pensado para niños que **ya empiezan a leer pero les cuesta**:
 sin prisa, sin "has perdido", con voz que lo lee todo en alto y muchos
-ánimos. **Se juega solo con el teclado, no hace falta el ratón.**
+ánimos.
+
+**Funciona con teclado físico Y en tablet/móvil** (trae su propio teclado
+en pantalla con botones grandes, no hace falta ratón ni el teclado del
+sistema).
 
 ## ▶️ Cómo jugar
 
-Lo más fácil: **doble clic en `index.html`** y se abre en el navegador.
-(No necesita internet ni instalar nada. La voz funciona en Chrome, Edge
-y Safari modernos.)
+- **En ordenador:** doble clic en `index.html` (o abre la web). Se juega con
+  el teclado o tocando.
+- **En tablet/móvil:** abre la web y toca. Para jugar a **pantalla completa**,
+  usa el botón **⛶** (arriba a la derecha) o **añade la página a la pantalla
+  de inicio** ("Añadir a inicio" / "Agregar a pantalla de inicio") y ábrela
+  desde ese icono: se abre a pantalla completa, como una app.
 
-> Si tu navegador no oye la voz al abrir el archivo directamente, ábrelo
-> con un servidor local: en una terminal, dentro de esta carpeta, ejecuta
+No necesita internet ni instalar nada. La voz funciona en Chrome, Edge y
+Safari modernos.
+
+> Si abres el archivo local y no se oye la voz, ábrelo con un servidor:
 > `python3 -m http.server` y entra en `http://localhost:8000`.
 
-## 🎮 Controles (todo con el teclado)
+## 🎮 Controles (teclado o pantalla táctil)
 
-| Tecla | Qué hace |
-|-------|----------|
-| **Cualquier letra** | Es la acción principal del juego |
-| **Flechas** y **Enter** | Elegir modo en el menú (y cambiar de letra en la galería) |
-| **1 … 8** | Entrar directamente a un modo |
-| **Espacio** | Repetir la voz · pasar a la siguiente · avanzar palabra (en Frases) |
-| **Enter** | Repetir la voz / la frase |
-| **Esc** | Volver al menú |
+Todo lo del teclado tiene su equivalente **tocable** en pantalla (teclado de
+letras, flechas, botón "Siguiente ▶" y "🔊 Repetir", y las tarjetas del menú).
 
-### Ajustes (en el menú)
+| Tecla / Toque | Qué hace |
+|---------------|----------|
+| **Una letra** (física o en pantalla) | Acción principal del juego |
+| **Tocar una tarjeta** / Flechas + Enter / **1…9** | Elegir modo |
+| **Espacio** / botón **Siguiente ▶** | Pasar a lo siguiente · avanzar palabra (Frases y Cuentos) |
+| **Enter** / botón **🔊** | Repetir la voz |
+| **Esc** / botón **⬅️** | Volver al menú |
+| Botón **⛶** | Pantalla completa |
+
+### Ajustes (en el menú: toca el badge o pulsa la tecla)
 
 | Tecla | Ajuste |
 |-------|--------|
@@ -38,8 +50,9 @@ y Safari modernos.)
 | **F** | La voz dice el **Nombre** (eme) o el **Sonido** (mmm) de la letra |
 | **L** | Letras en minúsculas `abc` o MAYÚSCULAS `ABC` |
 | **N** | Nivel: **Fácil → Medio → Difícil** |
+| **T** | Teclado en pantalla en **QWERTY** o en orden **ABC** |
 
-## 🧩 Los 8 modos (de explorar a leer)
+## 🧩 Los 9 modos (de explorar a leer)
 
 1. **🅰️ Explorar** — Pulsa cualquier letra y cobra vida: la dice en alto y
    enseña su profesión. Ideal para perder el miedo al teclado.
@@ -56,6 +69,8 @@ y Safari modernos.)
    de ayuda; en Difícil, sin dibujo: dictado puro).
 8. **💬 Frases** — Lee una frase, palabra a palabra: cada Espacio resalta y lee
    la siguiente palabra. Fluidez y comprensión.
+9. **📕 Cuentos** — Lee un cuento entero, página a página: descubre que leer
+   sirve para conocer historias. ✨
 
 En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
 suave; tras un par de intentos el juego le da una pista. Cada acierto suma

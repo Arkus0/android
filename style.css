@@ -24,6 +24,15 @@ html, body {
   background: linear-gradient(180deg, var(--azul-cielo-1) 0%, var(--azul-cielo-2) 55%, var(--verde-prado) 100%);
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* tablet/móvil: altura real sin barras del navegador */
 }
 
 /* Nubes decorativas de fondo */
@@ -46,41 +55,50 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 
 #app {
   position: relative;
-  height: 100vh;
-  width: 100vw;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  overflow-y: auto;
+  padding: calc(54px + env(safe-area-inset-top)) 8px 6px;
   z-index: 1;
 }
 
 /* ====================== HUD (barra superior) ====================== */
 .hud {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: env(safe-area-inset-top); left: 0; right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 18px;
-  font-size: 1.4rem;
+  padding: 8px 12px;
+  font-size: 1.3rem;
   font-weight: bold;
   z-index: 5;
   pointer-events: none;
 }
-.hud .volver {
-  background: #fff;
-  border-radius: 999px;
-  padding: 6px 16px;
-  box-shadow: 0 3px 0 rgba(0,0,0,.15);
-}
+.hud-lado { display: flex; gap: 8px; align-items: center; }
 .hud .estrellas {
   background: #fff;
   border-radius: 999px;
-  padding: 6px 16px;
+  padding: 6px 14px;
   box-shadow: 0 3px 0 rgba(0,0,0,.15);
 }
+.boton-hud {
+  pointer-events: auto;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 999px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 3px 0 rgba(0,0,0,.15);
+}
+.boton-hud:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.15); }
 
 /* ====================== Títulos y textos ====================== */
 .titulo {
@@ -258,13 +276,14 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   max-width: 920px;
 }
 .card {
-  width: 190px;
+  width: 160px;
   background: var(--tarjeta);
   border: 5px solid transparent;
   border-radius: 22px;
-  padding: 18px 14px;
+  padding: 14px 12px;
   box-shadow: 0 6px 0 rgba(0,0,0,.15);
   transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  cursor: pointer;
 }
 .card .num {
   display: inline-block;
@@ -297,7 +316,9 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   font-size: 1.05rem;
   font-weight: bold;
   box-shadow: 0 3px 0 rgba(0,0,0,.12);
+  cursor: pointer;
 }
+.badge:active { transform: translateY(2px); }
 
 /* ====================== Zona de juego ====================== */
 .stage {
@@ -310,9 +331,9 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 .dibujo { font-size: clamp(4rem, 16vw, 9rem); margin-bottom: 6px; }
 .fila-letras { display: flex; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
 .parade {
-  position: fixed;
-  bottom: 50px; left: 0; right: 0;
   display: flex; gap: 6px; justify-content: center; align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 10px;
   opacity: .9;
 }
 
@@ -361,6 +382,67 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
   will-change: transform, opacity;
   transition: transform 1.2s cubic-bezier(.2,.7,.3,1), opacity 1.2s ease;
 }
+
+/* ====================== Controles táctiles ====================== */
+#controles {
+  flex: 0 0 auto;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.4);
+  border-top: 2px solid rgba(0,0,0,.06);
+  z-index: 4;
+}
+.barra {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bcontrol {
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 1.3rem;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,.15);
+  cursor: pointer;
+  color: var(--texto);
+}
+.bcontrol.grande { font-size: 1.5rem; padding: 10px 28px; background: #ffd54a; }
+.bcontrol:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.15); }
+
+.teclado {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  width: 100%;
+}
+.kfila { display: flex; gap: 5px; justify-content: center; }
+.ktecla {
+  font-family: inherit;
+  font-weight: 900;
+  font-size: clamp(1rem, 5vw, 1.9rem);
+  width: clamp(2rem, 8.2vw, 3.3rem);
+  height: clamp(2.3rem, 8.6vw, 3.7rem);
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--c, #333);
+  box-shadow: 0 3px 0 rgba(0,0,0,.18);
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ktecla:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.18); }
 
 /* Cartel de celebración por hitos */
 .toast {

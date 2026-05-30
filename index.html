@@ -2,13 +2,24 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Las Letras Vivas — juego de lectura</title>
+
+  <!-- Para que en la tablet se pueda "añadir a pantalla de inicio" y abrir a pantalla completa -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Letras Vivas">
+  <meta name="theme-color" content="#aee3ff">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Contenedor principal del juego -->
+  <!-- Zona principal del juego -->
   <div id="app"></div>
+
+  <!-- Controles táctiles: teclado en pantalla / botones (se rellenan por JS) -->
+  <div id="controles"></div>
 
   <!-- Capa para confeti y efectos -->
   <div id="fx"></div>
