@@ -1,47 +1,58 @@
-# RPG Phaser - Prototipo Escalable
+# 🅰️ Las Letras Vivas
 
-Este es un prototipo de un RPG por turnos estilo Final Fantasy desarrollado con **Phaser 3** y **JavaScript moderno (ES Modules)**.
+Un juego para que los peques **aprendan a leer jugando con el teclado**.
+Cada letra es un personaje con ojos, sonrisa y su propia **profesión**
+("la **M** de **M**ago 🪄", "la **P** de **P**intor 🎨"), lo que ayuda a
+asociar cada letra con su sonido inicial.
 
-## 🚀 Cómo Ejecutar el Juego
+Está pensado para niños que **ya empiezan a leer pero les cuesta**:
+sin prisa, sin "has perdido", con voz que lo lee todo en alto y muchos
+ánimos. **Se juega solo con el teclado, no hace falta el ratón.**
 
-Debido a que el juego utiliza módulos de ES6 y carga de recursos, **no funcionará si simplemente haces doble clic en `index.html`** (debido a políticas de seguridad CORS de los navegadores).
+## ▶️ Cómo jugar
 
-Necesitas un servidor web local. Aquí tienes la forma más rápida de hacerlo:
+Lo más fácil: **doble clic en `index.html`** y se abre en el navegador.
+(No necesita internet ni instalar nada. La voz funciona en Chrome, Edge
+y Safari modernos.)
 
-### Opción 1: Usando Python (Recomendado)
-Si tienes Python instalado (lo cual es muy probable):
+> Si tu navegador no oye la voz al abrir el archivo directamente, ábrelo
+> con un servidor local: en una terminal, dentro de esta carpeta, ejecuta
+> `python3 -m http.server` y entra en `http://localhost:8000`.
 
-1. Abre una terminal/consola en la carpeta de este proyecto.
-2. Ejecuta el siguiente comando:
-   ```bash
-   python3 -m http.server
-   ```
-   (O `python -m http.server` en Windows).
-3. Abre tu navegador y ve a: `http://localhost:8000`
+## 🎮 Controles (todo con el teclado)
 
-### Opción 2: Extensión de VS Code
-Si usas Visual Studio Code, instala la extensión "Live Server", haz clic derecho en `index.html` y selecciona "Open with Live Server".
+| Tecla | Qué hace |
+|-------|----------|
+| **Cualquier letra** | Es la acción principal del juego |
+| **Flechas ⬅️ ➡️** y **Enter** | Elegir modo en el menú |
+| **1 · 2 · 3 · 4** | Entrar directamente a un modo |
+| **Enter / Espacio** | Repetir la voz · pasar a la siguiente |
+| **Esc** | Volver al menú |
+| **V** (en el menú) | Activar / quitar la voz |
+| **L** (en el menú) | Cambiar entre minúsculas `abc` y MAYÚSCULAS `ABC` |
 
-### Opción 3: Node.js (http-server)
-Si tienes Node.js instalado:
-1. `npx http-server .`
-2. Ve a la URL que te indique.
+## 🧩 Los 4 modos (de menos a más difícil)
 
-## 🎮 Controles
-*   **Mouse:** Usa el cursor para seleccionar comandos en el menú de batalla.
+1. **🅰️ Explorar** — Pulsa cualquier letra y cobra vida: la dice en alto y
+   enseña su profesión. Ideal para empezar y perder el miedo al teclado.
+2. **🔎 Encuentra la letra** — Aparece una letra; hay que pulsar esa tecla.
+   Empieza solo con las vocales y va añadiendo letras según acierta.
+3. **🧩 Sílabas** — Lee y escribe sílabas (ma, pe, li, so, tu...), la base
+   de la lectura en español.
+4. **📖 Palabras** — Aparece un dibujo y la palabra; la escribe letra a letra.
 
-## 🛠️ Arquitectura
-El proyecto está estructurado para ser escalable:
-*   `src/main.js`: Configuración del juego y punto de entrada.
-*   `src/scenes/`: Contiene las escenas del juego.
-    *   `BootScene.js`: Carga de assets (procedurales en este caso).
-    *   `BattleScene.js`: Lógica principal del combate.
-    *   `UIScene.js`: Interfaz de usuario (HUD, Menús) superpuesta.
-*   `src/prefabs/`: Clases de objetos de juego.
-    *   `Unit.js`: Clase base para Héroe y Enemigos.
+En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
+suave; tras un par de intentos el juego le da una pista. Cada acierto suma
+una ⭐ y cada 10 estrellas hay una gran fiesta de confeti. El progreso se
+guarda en el propio navegador.
 
-## 🔮 Futuras Mejoras
-*   Añadir spritesheets y animaciones reales.
-*   Sistema de menús anidados (Magia, Objetos).
-*   Múltiples enemigos y party de héroes.
-*   Sistema de experiencia y niveles.
+## 🛠️ Para quien quiera tocar el código
+
+Solo tres archivos, sin frameworks ni compilación:
+
+- `index.html` — estructura.
+- `style.css` — apariencia y animaciones de las letras.
+- `game.js` — toda la lógica (datos de las letras, modos, voz y efectos).
+
+Para cambiar las palabras, las profesiones o las sílabas, edita las tablas
+`INFO`, `PALABRAS` y `CONS_SIL` al principio de `game.js`.
