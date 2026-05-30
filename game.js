@@ -95,28 +95,67 @@
     {t:"el tigre corre por la selva", e:"🐯"}
   ];
 
-  // Cuentos: varias páginas (frase + dibujo) que forman una historia
+  // Cuentos: páginas (frase corta + dibujo) que forman una historia.
+  // En este modo el niño TECLEA cada palabra entera para avanzar, por eso
+  // las frases son cortas. Las tildes/mayúsculas son solo para mostrar;
+  // al teclear se normalizan a letras base (ver normaliza()).
   var CUENTOS = [
+    { titulo:"Los tres cerditos", e:"🐷", paginas:[
+      {t:"había tres cerditos", e:"🐷"}, {t:"uno usó paja", e:"🌾"},
+      {t:"otro usó palos", e:"🪵"}, {t:"otro usó ladrillos", e:"🧱"},
+      {t:"llegó el lobo", e:"🐺"}, {t:"sopló la paja", e:"💨"},
+      {t:"sopló los palos", e:"🪵"}, {t:"los ladrillos ganaron", e:"🧱"},
+      {t:"el lobo huyó", e:"🏃"}, {t:"vivieron felices", e:"🎉"}
+    ]},
+    { titulo:"Caperucita Roja", e:"🔴", paginas:[
+      {t:"había una niña", e:"👧"}, {t:"tenía capa roja", e:"🧥"},
+      {t:"era caperucita", e:"🔴"}, {t:"visitaba a la abuela", e:"👵"},
+      {t:"llevaba una cesta", e:"🧺"}, {t:"vio un lobo", e:"🐺"},
+      {t:"el lobo era astuto", e:"😼"}, {t:"corrió a la casa", e:"🏃"},
+      {t:"llegó un cazador", e:"🪓"}, {t:"todos a salvo", e:"✅"}
+    ]},
+    { titulo:"Los músicos de Bremen", e:"🎶", paginas:[
+      {t:"un burro se fue", e:"🫏"}, {t:"quería ser músico", e:"🎶"},
+      {t:"halló un perro", e:"🐕"}, {t:"luego un gato", e:"🐈"},
+      {t:"y un gallo", e:"🐓"}, {t:"iban a bremen", e:"🎵"},
+      {t:"vieron una casa", e:"🏠"}, {t:"había ladrones", e:"😱"},
+      {t:"los asustaron", e:"🙀"}, {t:"se quedaron felices", e:"🎉"}
+    ]},
+    { titulo:"Ricitos de oro", e:"🐻", paginas:[
+      {t:"una niña rubia", e:"👧"}, {t:"se llama ricitos", e:"🌟"},
+      {t:"entró en la casa", e:"🏠"}, {t:"probó la sopa", e:"🍲"},
+      {t:"rompió una silla", e:"🪑"}, {t:"subió a dormir", e:"😴"},
+      {t:"llegaron tres osos", e:"🐻"}, {t:"ricitos se asustó", e:"😨"},
+      {t:"salió corriendo", e:"🏃"}, {t:"los osos rieron", e:"😄"}
+    ]},
+    { titulo:"El patito feo", e:"🦆", paginas:[
+      {t:"nació un patito", e:"🐣"}, {t:"era diferente", e:"🦆"},
+      {t:"todos se reían", e:"😢"}, {t:"el patito se fue", e:"🚶"},
+      {t:"pasó el invierno", e:"❄️"}, {t:"estaba muy solo", e:"😔"},
+      {t:"llegó la primavera", e:"🌸"}, {t:"se miró al agua", e:"💧"},
+      {t:"era un cisne", e:"🦢"}, {t:"muy hermoso", e:"✨"}
+    ]},
+    { titulo:"El ratón y sus amigos", e:"🐭", paginas:[
+      {t:"había un ratón", e:"🐭"}, {t:"era muy alegre", e:"😄"},
+      {t:"tenía un perro", e:"🐶"}, {t:"y un pato", e:"🦆"},
+      {t:"jugaban juntos", e:"🤝"}, {t:"hicieron un pastel", e:"🎂"},
+      {t:"cantaron canciones", e:"🎵"}, {t:"rieron mucho", e:"😆"},
+      {t:"eran felices", e:"💛"}
+    ]},
     { titulo:"El gato y la luna", e:"🐱", paginas:[
-      {t:"el gato mira la luna", e:"🐱"},
-      {t:"la luna es grande y blanca", e:"🌕"},
-      {t:"el gato salta para tocarla", e:"😺"},
-      {t:"pero la luna está muy lejos", e:"🌙"},
-      {t:"el gato se duerme feliz", e:"😴"}
+      {t:"el gato mira arriba", e:"🐱"}, {t:"ve la luna", e:"🌕"},
+      {t:"la luna brilla", e:"✨"}, {t:"el gato salta", e:"😺"},
+      {t:"no la alcanza", e:"🌙"}, {t:"el gato se duerme", e:"😴"}
     ]},
     { titulo:"La rana valiente", e:"🐸", paginas:[
-      {t:"una rana vive en el lago", e:"🐸"},
-      {t:"un día llega una tormenta", e:"🌧️"},
-      {t:"la rana ayuda a sus amigos", e:"🐢"},
-      {t:"todos llegan a casa secos", e:"🏠"},
-      {t:"la rana es muy valiente", e:"💚"}
+      {t:"una rana vive aquí", e:"🐸"}, {t:"llega una tormenta", e:"🌧️"},
+      {t:"la rana ayuda", e:"🐸"}, {t:"salva a sus amigos", e:"🐢"},
+      {t:"todos están secos", e:"🏠"}, {t:"la rana es valiente", e:"💚"}
     ]},
     { titulo:"El cohete de Ana", e:"🚀", paginas:[
-      {t:"ana construye un cohete", e:"🚀"},
-      {t:"vuela muy alto hacia el cielo", e:"☁️"},
-      {t:"ve estrellas y planetas", e:"⭐"},
-      {t:"saluda a la luna sonriente", e:"🌙"},
-      {t:"ana vuelve a casa contenta", e:"🏡"}
+      {t:"ana hace un cohete", e:"🚀"}, {t:"el cohete vuela", e:"☁️"},
+      {t:"sube muy alto", e:"⬆️"}, {t:"ve las estrellas", e:"⭐"},
+      {t:"saluda a la luna", e:"🌙"}, {t:"ana vuelve feliz", e:"🏡"}
     ]}
   ];
 
@@ -672,34 +711,94 @@
     } else { nuevaFrase(); }
   }
 
-  /* ---------- CUENTOS ---------- */
+  /* ---------- CUENTOS (se teclea cada palabra para avanzar) ---------- */
+  // Quita tildes (pero conserva la ñ) y deja solo letras: lo que hay que teclear.
+  function normaliza(w) {
+    return w.toLowerCase()
+      .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e").replace(/[íìï]/g, "i")
+      .replace(/[óòö]/g, "o").replace(/[úùü]/g, "u")
+      .replace(/[^a-zñ]/g, "");
+  }
+  function palabrasDe(frase) {
+    return frase.split(/\s+/)
+      .map(function (w) { return { orig: w, type: normaliza(w) }; })
+      .filter(function (x) { return x.type.length > 0; });
+  }
   function iniciarCuentos() {
-    S.pantalla = "cuentos"; hudVisible(true); pintarControles("frases");
+    S.pantalla = "cuentos"; hudVisible(true); pintarControles("teclado");
     var i; do { i = (Math.random() * CUENTOS.length) | 0; } while (CUENTOS.length > 1 && i === S.cuentoPrev);
     S.cuentoPrev = i;
-    S.cuento = { story: CUENTOS[i], pag: 0, tokens: [], idx: 0, fase: 0 };
+    S.cuento = { story: CUENTOS[i], pag: 0 };
     nuevaPaginaCuento(0);
-    hablar("Cuento: " + CUENTOS[i].titulo);
   }
   function nuevaPaginaCuento(pag) {
     var c = S.cuento, st = c.story, pagina = st.paginas[pag];
-    c.pag = pag; c.tokens = pagina.t.split(" "); c.idx = 0; c.fase = 0;
-    pintarLectura("📕 " + st.titulo + "  ·  página " + (pag + 1) + " de " + st.paginas.length, c.tokens, pagina.e);
+    c.pag = pag; c.words = palabrasDe(pagina.t); c.wIdx = 0; c.escrito = 0; c.intentos = 0; c.fin = false;
+    S.celebrando = false;
+    limpiar(app);
+    app.appendChild(el("p", "prompt", "📕 " + st.titulo + "  ·  página " + (pag + 1) + " de " + st.paginas.length));
+    var stage = el("div", "stage"); stage.id = "stage";
+    var d = el("div", "dibujo cuento-dibujo", pagina.e); d.style.width = "100%"; stage.appendChild(d);
+    var fr = el("div", "frase");
+    c.words.forEach(function (w) { fr.appendChild(el("span", "palabra-frase", w.orig)); });
+    stage.appendChild(fr);
+    var fila = el("div", "fila-letras"); fila.id = "cuento-word"; stage.appendChild(fila);
+    app.appendChild(stage);
+    activarPalabraCuento();
   }
-  function avanzarCuento() {
-    var c = S.cuento, st = c.story, spans = app.querySelectorAll("#stage .frase .palabra-frase");
-    if (c.fase === 0 && c.idx < c.tokens.length) {
-      for (var i = 0; i < spans.length; i++) spans[i].classList.remove("activa");
-      if (c.idx > 0) spans[c.idx - 1].classList.add("leida");
-      spans[c.idx].classList.add("activa"); hablar(c.tokens[c.idx]); sfxTick(); c.idx++;
-    } else if (c.fase === 0) {
-      for (var j = 0; j < spans.length; j++) { spans[j].classList.remove("activa"); spans[j].classList.add("leida"); }
-      hablar(c.tokens.join(" "));
-      if (c.pag < st.paginas.length - 1) { c.fase = 1; sfxTick(); }
-      else { c.fase = 2; sfxFanfarria(); confeti(null, 50); sumarEstrella();
-             cartel("📕 ¡Has leído un cuento!"); hablar("¡Bravo! Has leído el cuento " + st.titulo + " tú solo."); }
-    } else if (c.fase === 1) { nuevaPaginaCuento(c.pag + 1); }
-    else { iniciarCuentos(); } // fase 2: otro cuento
+  function activarPalabraCuento() {
+    var c = S.cuento;
+    var spans = app.querySelectorAll("#stage .frase .palabra-frase");
+    for (var i = 0; i < spans.length; i++) {
+      spans[i].classList.remove("activa", "leida");
+      if (i < c.wIdx) spans[i].classList.add("leida");
+      else if (i === c.wIdx) spans[i].classList.add("activa");
+    }
+    var fila = document.getElementById("cuento-word"); limpiar(fila);
+    if (c.wIdx < c.words.length) {
+      c.words[c.wIdx].type.split("").forEach(function (L) { fila.appendChild(personaje(L, 6, false)); });
+      resaltarCuento();
+      hablar(c.words[c.wIdx].orig);
+    }
+  }
+  function resaltarCuento() {
+    var c = S.cuento, chars = document.querySelectorAll("#cuento-word .letter-char");
+    for (var i = 0; i < chars.length; i++) { chars[i].classList.remove("next"); if (i < c.escrito) chars[i].classList.add("done"); }
+    if (chars[c.escrito]) chars[c.escrito].classList.add("next");
+  }
+  function escribirCuento(letra) {
+    var c = S.cuento, target = c.words[c.wIdx].type, sig = target.charAt(c.escrito);
+    var chars = document.querySelectorAll("#cuento-word .letter-char");
+    if (letra === sig) {
+      c.escrito++; c.intentos = 0; sfxTick();
+      var ch = chars[c.escrito - 1]; if (ch) { ch.classList.add("done"); animar(ch, "happy", 450); }
+      if (c.escrito >= target.length) {
+        descubrir(c.words[c.wIdx].type.charAt(0));
+        var spans = app.querySelectorAll("#stage .frase .palabra-frase");
+        if (spans[c.wIdx]) { spans[c.wIdx].classList.remove("activa"); spans[c.wIdx].classList.add("leida"); }
+        c.wIdx++; c.escrito = 0;
+        if (c.wIdx < c.words.length) activarPalabraCuento();
+        else paginaCompletaCuento();
+      } else resaltarCuento();
+    } else {
+      c.intentos++; sfxUps(); animar(chars[c.escrito], "oops", 400);
+      if (c.intentos >= 2) { resaltarCuento(); hablar("Busca la " + INFO[sig].n); }
+    }
+  }
+  function paginaCompletaCuento() {
+    var c = S.cuento, st = c.story;
+    sfxBien(); confeti(document.getElementById("stage")); sumarEstrella();
+    hablar(st.paginas[c.pag].t);
+    if (c.pag < st.paginas.length - 1) {
+      S.celebrando = true;
+      setTimeout(function () { if (S.pantalla === "cuentos" && S.celebrando) { S.celebrando = false; nuevaPaginaCuento(c.pag + 1); } }, 1700);
+    } else {
+      c.fin = true; S.celebrando = true;
+      setTimeout(function () { sfxFanfarria(); confeti(null, 60); }, 300);
+      cartel("📕 ¡Has leído " + st.titulo + "!");
+      hablar("¡Bravo! Has leído el cuento " + st.titulo + " tú solo. ¡Eres un campeón!");
+      setTimeout(function () { if (S.pantalla === "cuentos" && S.cuento && S.cuento.fin) iniciarCuentos(); }, 5000);
+    }
   }
 
   /* ------------------------------------------------------------------
@@ -755,7 +854,9 @@
       return;
     }
     if (S.pantalla === "cuentos") {
-      if (k === " ") avanzarCuento(); else if (k === "Enter") hablar(S.cuento.tokens.join(" "));
+      if (S.celebrando) { if (S.cuento.fin && (k === "Enter" || k === " ")) iniciarCuentos(); return; }
+      if (k === "Enter" || k === " ") { if (S.cuento.wIdx < S.cuento.words.length) hablar(S.cuento.words[S.cuento.wIdx].orig); return; }
+      if (esLetra(k)) escribirCuento(k.toLowerCase());
       return;
     }
   }

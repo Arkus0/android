@@ -81,6 +81,15 @@ Es un único IIFE con secciones numeradas:
 `explora` · `galeria` · `busca` · `silabas` · `palabras` · `falta` (letra que
 falta) · `dictado` (escucha y escribe) · `frases` · `cuentos`.
 
+- **`frases`** = lectura guiada: se pulsa Espacio / "Siguiente ▶" y oye cada
+  palabra (no se teclea).
+- **`cuentos`** = lectura ACTIVA: el niño **teclea cada palabra entera** para
+  avanzar (decisión del usuario), oye la palabra al completarla, avanza por
+  páginas y celebra al terminar la historia. Usa controles de **teclado**.
+  Cada cuento = `{ titulo, e, paginas:[{t, e}] }` con frases CORTAS. El texto
+  mostrado puede llevar tildes/mayúsculas; `normaliza()` las pasa a letras base
+  para teclear (conserva la `ñ`). Añadir cuentos = añadir entradas a `CUENTOS`.
+
 ### Ajustes (en el menú, tecla o tocar el badge)
 `V` voz on/off · `F` nombre/sonido · `L` abc/ABC · `N` nivel (Fácil/Medio/Difícil)
 · `T` teclado QWERTY/ABC.
@@ -140,9 +149,10 @@ Fullscreen API. **Ejecútalo siempre tras tocar `game.js`.**
 - **Una sola vía de entrada:** todo pasa por `manejarTecla(k)`. Los botones
   táctiles y el teclado en pantalla solo llaman a esa función. No dupliques
   lógica en los handlers de clic.
-- **Sin tildes en lo que se TECLEA** (`PALABRAS`, sílabas): teclear acentos es
-  difícil para el niño. En lo que solo se LEE (`FRASES`, `CUENTOS`) **sí** se
-  usan tildes (mejor TTS y lectura real).
+- **Tildes:** en `PALABRAS` y sílabas (se teclean directamente) **no** se usan
+  tildes. En `FRASES` (solo lectura) sí. En `CUENTOS` el texto mostrado puede
+  llevar tildes, pero al teclear se normalizan con `normaliza()` (quita tildes,
+  conserva la `ñ`). Para añadir un modo nuevo donde se teclee, normaliza igual.
 - **Mantener clásico:** nada de `import`/`export`, `fetch` ni dependencias.
   Debe seguir funcionando con doble clic en `index.html`.
 - **Tamaños:** usa `personaje(letra, rem, ...)`; el `rem` se limita con vmin
@@ -158,8 +168,10 @@ Fullscreen API. **Ejecútalo siempre tras tocar `game.js`.**
 
 ## 8. Roadmap / próximas ideas (acordadas con el usuario)
 
-- **Más cuentos y más largos** (es lo que más ilusión le hace al usuario:
-  "leer = conocer historias"). Añadir a `CUENTOS`.
+- **Más cuentos** (al usuario le ilusiona especialmente: "leer = conocer
+  historias"). Hay 9 (clásicos, Grimm y uno de un ratón); se pueden añadir más
+  o más largos en `CUENTOS`. Nota IP: evitar personajes con copyright (p. ej.
+  Mickey) usando equivalentes genéricos.
 - **Panel para padres**: qué letras/sílabas le cuestan más (registrar aciertos
   /fallos por letra en `localStorage` y mostrar un resumen).
 - **Forma la palabra** (anagramas con letras desordenadas).

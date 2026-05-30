@@ -82,9 +82,22 @@ click(doc.querySelectorAll('.card')[1], 'card galeria');
 clickLetra('m');
 press('Escape');
 
-// Cuentos leídos enteros por toque
+// Cuentos: tecleando cada palabra (con el teclado en pantalla) hasta acabar una página
 click(doc.querySelectorAll('.card')[8], 'card cuentos');
-for (let i = 0; i < 60; i++) clickSel('.bcontrol.grande');
+if (kteclas().length === 0) errores.push('Cuentos: no hay teclado en pantalla');
+const palabrasPag = doc.querySelectorAll('#stage .frase .palabra-frase').length;
+// Tras teclear la 1ª palabra, su span debe quedar marcado como leído y avanzar
+const prim = [...doc.querySelectorAll('#cuento-word .letter-char')].map(c => c.dataset.letra);
+prim.forEach(clickLetra);
+if (!doc.querySelector('#stage .frase .palabra-frase.leida')) errores.push('Cuentos: la palabra tecleada no avanzó');
+for (let w = 1; w < palabrasPag; w++) {
+  const letras = [...doc.querySelectorAll('#cuento-word .letter-char')].map(c => c.dataset.letra);
+  if (letras.length === 0) break;
+  letras.forEach(clickLetra);
+}
+const leidas = doc.querySelectorAll('#stage .frase .palabra-frase.leida').length;
+if (leidas !== palabrasPag) errores.push('Cuentos: página no completada (' + leidas + '/' + palabrasPag + ' palabras leídas)');
+press('a'); // tecla durante la transición de página: debe ignorarse sin error
 press('Escape');
 
 // Frases por toque
