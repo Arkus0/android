@@ -87,10 +87,36 @@ una ⭐ (fiesta de confeti cada 10) y va completando la colección 📚 de las
 
 Solo tres archivos, sin frameworks ni compilación:
 
-- `index.html` — estructura.
-- `style.css` — apariencia y animaciones de las letras.
+- `index.html` — estructura (`#app`, `#controles`, `#fx`).
+- `style.css` — apariencia, animaciones y layout responsive/táctil.
 - `game.js` — toda la lógica (datos de las letras, modos, voz y efectos).
 
 Para cambiar el contenido, edita al principio de `game.js` las tablas:
 `INFO` (letras, profesiones y sonidos), `PALABRAS` (palabras + dibujo +
-dificultad), `FRASES`, `CONS_SIL` y `TRABADAS`.
+dificultad), `FRASES`, `CUENTOS`, `CONS_SIL` y `TRABADAS`.
+
+### Probar los cambios
+```bash
+node --check game.js
+npm install jsdom --no-save --prefix /tmp/jsdomtest
+JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 9 modos
+```
+
+## 📦 Estado y despliegue
+
+- **En producción:** https://android-coral-ten.vercel.app
+- Se publica solo: **push a `main` → Vercel despliega producción** (integración
+  GitHub↔Vercel). Las ramas generan *previews*.
+- Versión actual: 9 modos, 3 niveles, teclado físico + táctil, voz nombre/sonido,
+  colección de letras y cuentos.
+
+## 🧭 Cómo continuar
+
+Toda la guía técnica para retomar el desarrollo (arquitectura de `game.js`,
+reglas, pruebas, despliegue e IDs de Vercel) está en **[`CLAUDE.md`](CLAUDE.md)**.
+
+### Ideas pendientes
+- Más cuentos (y más largos).
+- Panel para padres: qué letras/sílabas le cuestan más.
+- "Forma la palabra" (anagramas) y adivinanzas.
+- Temas de palabras elegibles (animales, espacio, dinosaurios…).
