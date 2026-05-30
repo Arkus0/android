@@ -360,6 +360,10 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 }
 .frase .palabra-frase.leida { color: #2e9e3f; }
 
+/* Cuentos: dibujo más pequeño y la palabra que se teclea debajo */
+.dibujo.cuento-dibujo { font-size: clamp(2.4rem, 9vmin, 4.5rem); margin-bottom: 2px; }
+#cuento-word { margin-top: 8px; }
+
 /* Intro */
 .intro-tip {
   font-size: clamp(1.2rem, 4vw, 2rem);

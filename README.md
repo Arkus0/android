@@ -69,8 +69,10 @@ letras, flechas, botón "Siguiente ▶" y "🔊 Repetir", y las tarjetas del men
    de ayuda; en Difícil, sin dibujo: dictado puro).
 8. **💬 Frases** — Lee una frase, palabra a palabra: cada Espacio resalta y lee
    la siguiente palabra. Fluidez y comprensión.
-9. **📕 Cuentos** — Lee un cuento entero, página a página: descubre que leer
-   sirve para conocer historias. ✨
+9. **📕 Cuentos** — Lee cuentos enteros **escribiendo cada palabra** para
+   avanzar (así aprende qué letras la forman) y oyéndola al completarla.
+   Incluye clásicos y de los Hermanos Grimm (Los tres cerditos, Caperucita,
+   Los músicos de Bremen, Ricitos de oro, El patito feo…). ✨
 
 En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
 suave; tras un par de intentos el juego le da una pista. Cada acierto suma
@@ -116,7 +118,7 @@ Toda la guía técnica para retomar el desarrollo (arquitectura de `game.js`,
 reglas, pruebas, despliegue e IDs de Vercel) está en **[`CLAUDE.md`](CLAUDE.md)**.
 
 ### Ideas pendientes
-- Más cuentos (y más largos).
+- Aún más cuentos (y más largos).
 - Panel para padres: qué letras/sílabas le cuestan más.
 - "Forma la palabra" (anagramas) y adivinanzas.
 - Temas de palabras elegibles (animales, espacio, dinosaurios…).
