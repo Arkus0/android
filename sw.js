@@ -4,7 +4,7 @@
    Estrategia: cache-first con respaldo de red (es un sitio estático).
    Sube CACHE cuando cambies archivos para forzar la actualización.
    ===================================================================== */
-var CACHE = "letras-vivas-v2";
+var CACHE = "letras-vivas-v3";
 var ASSETS = [
   "./",
   "index.html",

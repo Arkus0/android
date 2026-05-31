@@ -91,8 +91,8 @@
     selMenu: 0, celebrando: false,
     busca: null, grupo: 5,
     esc: null, falta: null, frase: null, gal: null, cuento: null, cuentoPrev: -1,
-    // sub-estados de los juegos de pulsar
-    toca: null, empieza: null, caza: null, parejas: null, perfilUI: null
+    // sub-estados de vocabulario y de los juegos de pulsar
+    lee: null, toca: null, caza: null, parejas: null, perfilUI: null
   };
 
   // Copia el perfil activo a S (al arrancar y al cambiar de niño)

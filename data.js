@@ -91,6 +91,72 @@ LV.BLOQUES_PALABRAS = [
   {w:"elefante",e:"🐘",sil:["e","le","fan","te"],d:2}, {w:"cocodrilo",e:"🐊",sil:["co","co","dri","lo"],d:2}
 ];
 
+/* VOCABULARIO para los modos AVANZADOS (Lee palabras / Palabras nuevas).
+   Son palabras de verdad, SIN emoji y SIN tildes (se teclean directamente;
+   conserva ñ). Aquí el niño aprende VOCABULARIO leyendo, no dibujos. Cada
+   palabra debe existir en el diccionario LV.DIC (lo verifica test/smoke.js) y
+   medir 2-10 letras. d: 0 corta · 1 media · 2 larga/avanzada. */
+LV.VOCAB = [
+  /* d:0 — cortas (3-4 letras) */
+  {w:"uva",d:0},{w:"ola",d:0},{w:"ajo",d:0},{w:"ave",d:0},{w:"ala",d:0},
+  {w:"rio",d:0},{w:"red",d:0},{w:"voz",d:0},{w:"luz",d:0},{w:"col",d:0},
+  {w:"mano",d:0},{w:"dedo",d:0},{w:"pelo",d:0},{w:"nido",d:0},{w:"gota",d:0},
+  {w:"vela",d:0},{w:"pera",d:0},{w:"mesa",d:0},{w:"taza",d:0},{w:"rama",d:0},
+  {w:"lana",d:0},{w:"cola",d:0},{w:"mapa",d:0},{w:"sapo",d:0},{w:"foco",d:0},
+  {w:"humo",d:0},{w:"lago",d:0},{w:"mago",d:0},{w:"codo",d:0},{w:"pavo",d:0},
+  {w:"rata",d:0},{w:"ropa",d:0},{w:"ruta",d:0},{w:"seta",d:0},{w:"tela",d:0},
+  {w:"vino",d:0},{w:"vida",d:0},{w:"hada",d:0},{w:"beso",d:0},{w:"boda",d:0},
+  {w:"cama",d:0},{w:"copa",d:0},{w:"cubo",d:0},{w:"faro",d:0},{w:"loro",d:0},
+  {w:"lazo",d:0},{w:"moto",d:0},{w:"nota",d:0},{w:"pala",d:0},{w:"pila",d:0},
+  {w:"pino",d:0},{w:"piso",d:0},{w:"polo",d:0},{w:"puma",d:0},{w:"remo",d:0},
+  {w:"saco",d:0},{w:"toro",d:0},{w:"vaso",d:0},{w:"nene",d:0},{w:"leon",d:0},
+  {w:"gol",d:0},{w:"sal",d:0},{w:"miel",d:0},{w:"pez",d:0},{w:"mes",d:0},
+  {w:"sol",d:0},{w:"tren",d:0},{w:"flan",d:0},{w:"duna",d:0},{w:"jugo",d:0},
+  /* d:1 — medias (5-7 letras) */
+  {w:"conejo",d:1},{w:"caballo",d:1},{w:"gallina",d:1},{w:"ardilla",d:1},
+  {w:"tortuga",d:1},{w:"ballena",d:1},{w:"delfin",d:1},{w:"camello",d:1},
+  {w:"paloma",d:1},{w:"abeja",d:1},{w:"mosca",d:1},{w:"oruga",d:1},
+  {w:"oveja",d:1},{w:"cabra",d:1},{w:"cerdo",d:1},{w:"burro",d:1},
+  {w:"raton",d:1},{w:"pulpo",d:1},{w:"jirafa",d:1},{w:"canguro",d:1},
+  {w:"erizo",d:1},{w:"lagarto",d:1},{w:"pollito",d:1},{w:"caracol",d:1},
+  {w:"tomate",d:1},{w:"patata",d:1},{w:"lechuga",d:1},{w:"cebolla",d:1},
+  {w:"naranja",d:1},{w:"platano",d:1},{w:"cereza",d:1},{w:"galleta",d:1},
+  {w:"helado",d:1},{w:"pollo",d:1},{w:"huevo",d:1},{w:"leche",d:1},
+  {w:"arroz",d:1},{w:"tarta",d:1},{w:"melon",d:1},{w:"limon",d:1},
+  {w:"mango",d:1},{w:"yogur",d:1},{w:"jamon",d:1},{w:"queso",d:1},
+  {w:"ventana",d:1},{w:"puerta",d:1},{w:"cocina",d:1},{w:"espejo",d:1},
+  {w:"manta",d:1},{w:"sabana",d:1},{w:"escoba",d:1},{w:"cuchara",d:1},
+  {w:"botella",d:1},{w:"banera",d:1},{w:"brazo",d:1},{w:"pierna",d:1},
+  {w:"rodilla",d:1},{w:"hombro",d:1},{w:"espalda",d:1},{w:"lengua",d:1},
+  {w:"diente",d:1},{w:"oreja",d:1},{w:"cabeza",d:1},{w:"arbol",d:1},
+  {w:"bosque",d:1},{w:"camino",d:1},{w:"piedra",d:1},{w:"arena",d:1},
+  {w:"nieve",d:1},{w:"lluvia",d:1},{w:"cielo",d:1},{w:"playa",d:1},
+  {w:"isla",d:1},{w:"pelota",d:1},{w:"juguete",d:1},{w:"muñeca",d:1},
+  {w:"coche",d:1},{w:"barco",d:1},{w:"avion",d:1},{w:"globo",d:1},
+  {w:"escuela",d:1},{w:"maestra",d:1},{w:"pintura",d:1},{w:"pirata",d:1},
+  {w:"tesoro",d:1},{w:"bandera",d:1},{w:"sombrero",d:1},{w:"vestido",d:1},
+  {w:"girasol",d:1},{w:"castor",d:1},{w:"gamba",d:1},{w:"grillo",d:1},
+  {w:"cigarra",d:1},{w:"pantera",d:1},{w:"medusa",d:1},{w:"gaviota",d:1},
+  {w:"tucan",d:1},{w:"colibri",d:1},{w:"cohete",d:1},{w:"planta",d:1},
+  {w:"semilla",d:1},{w:"raiz",d:1},{w:"tronco",d:1},{w:"granja",d:1},{w:"cometa",d:1},
+  /* d:2 — largas / avanzadas (7-10 letras) */
+  {w:"elefante",d:2},{w:"mariposa",d:2},{w:"cocodrilo",d:2},{w:"dinosaurio",d:2},
+  {w:"biblioteca",d:2},{w:"telescopio",d:2},{w:"bicicleta",d:2},{w:"chocolate",d:2},
+  {w:"hospital",d:2},{w:"bombero",d:2},{w:"princesa",d:2},{w:"castillo",d:2},
+  {w:"planeta",d:2},{w:"estrella",d:2},{w:"montaña",d:2},{w:"serpiente",d:2},
+  {w:"cangrejo",d:2},{w:"escarabajo",d:2},{w:"avestruz",d:2},{w:"flamenco",d:2},
+  {w:"zanahoria",d:2},{w:"espagueti",d:2},{w:"mermelada",d:2},{w:"paraguas",d:2},
+  {w:"linterna",d:2},{w:"ordenador",d:2},{w:"telefono",d:2},{w:"televisor",d:2},
+  {w:"catarata",d:2},{w:"desierto",d:2},{w:"aventura",d:2},{w:"sorpresa",d:2},
+  {w:"caballero",d:2},{w:"carretera",d:2},{w:"fantasma",d:2},{w:"gigante",d:2},
+  {w:"vampiro",d:2},{w:"esqueleto",d:2},{w:"calabaza",d:2},{w:"mariquita",d:2},
+  {w:"hormiga",d:2},{w:"mosquito",d:2},{w:"abanico",d:2},{w:"manzana",d:2},
+  {w:"pantalon",d:2},{w:"chaqueta",d:2},{w:"calcetin",d:2},{w:"caramelo",d:2},
+  {w:"leopardo",d:2},{w:"tiburon",d:2},{w:"camaleon",d:2},{w:"armadillo",d:2},
+  {w:"libelula",d:2},{w:"hipopotamo",d:2},{w:"murcielago",d:2},{w:"golondrina",d:2},
+  {w:"submarino",d:2},{w:"pelicano",d:2},{w:"escorpion",d:2}
+];
+
 /* Frases sueltas para leer (solo lectura: usamos tildes, suenan mejor) */
 LV.FRASES = [
   {t:"el sol es amarillo", e:"☀️"},

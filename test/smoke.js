@@ -1,8 +1,8 @@
 /* =====================================================================
    Test de humo de "Las Letras Vivas" con jsdom.
    Carga los scripts (data.js → core.js → bloques.js → modos.js → diccionario.js)
-   y simula teclado FÍSICO y TÁCTIL en los 16 modos (incluidos los juegos de
-   pulsar y los de bloques: taller libre, construir y tren) + perfiles +
+   y simula teclado FÍSICO y TÁCTIL en los 17 modos (incluidos los juegos de
+   pulsar, los de vocabulario y los de bloques: taller libre, construir y tren) + perfiles +
    separación PC/tablet, comprobando que no salta ninguna excepción.
    No es exhaustivo: detecta errores de carga/runtime.
 
@@ -74,7 +74,8 @@ const clickLetra = L => { const b = kteclas().find(x => x.textContent.toLowerCas
 
 // ===== recorrido =====
 click(doc.getElementById('app'), '#app (intro->home)');
-if (doc.querySelectorAll('.card').length !== 16) errores.push('Se esperaban 16 tarjetas, hay ' + doc.querySelectorAll('.card').length);
+if (doc.querySelectorAll('.card').length !== 17) errores.push('Se esperaban 17 tarjetas, hay ' + doc.querySelectorAll('.card').length);
+if (!doc.querySelector('.seccion-titulo')) errores.push('El menú no tiene secciones con título');
 click(doc.querySelectorAll('.boton-hud')[1], 'fullscreen');
 click(doc.querySelectorAll('.ajustes .badge')[1], 'badge voz'); // toggla la voz
 
@@ -93,12 +94,17 @@ tilesToca.forEach(t => t.click());
 if (!doc.querySelector('#toca-banner .letter-char')) errores.push('Toca y descubre: no apareció la palabra');
 press('Escape');
 
-// --- JUEGO 2: ¿CUÁL EMPIEZA POR…? ---
-click(card('empieza'), 'card empieza');
-let objE = (doc.querySelector('#stage .fila-letras .letter-char') || {}).dataset;
-const opc = doc.querySelectorAll('.grid-opciones .emoji-tile');
-if (opc.length === 0) errores.push('Empieza por: no hay opciones');
-if (objE) { const ok = doc.querySelector('.grid-opciones .emoji-tile[data-letra="' + objE.letra + '"]'); click(ok, 'opcion correcta empieza'); }
+// --- VOCABULARIO: LEE PALABRAS (lectura rápida, sin teclear) ---
+click(card('lee'), 'card lee');
+if (chars().length === 0) errores.push('Lee palabras: no aparece la palabra');
+press(' '); press(' '); press('Enter'); // leer y avanzar varias veces
+if (chars().length === 0) errores.push('Lee palabras: no hay palabra tras avanzar');
+press('Escape');
+
+// --- VOCABULARIO: PALABRAS NUEVAS (teclear la palabra, sin emoji) ---
+click(card('vocab'), 'card vocab');
+if (chars().length === 0) errores.push('Palabras nuevas: no aparece la palabra');
+chars().map(c => c.dataset.letra).forEach(clickLetra);
 press('Escape');
 
 // --- JUEGO 3: CAZA LA LETRA ---
@@ -183,6 +189,13 @@ window.LV.BLOQUES_PALABRAS.forEach(p => { if (p.sil.join('') !== p.w) errores.pu
 if (!window.LV.DIC || window.LV.DIC.size < 100000) errores.push('Diccionario no cargado o demasiado pequeño');
 if (!window.LV.esPalabra('casa')) errores.push('esPalabra("casa") debería ser true');
 if (window.LV.esPalabra('xqzpt')) errores.push('esPalabra inventada debería ser false');
+// Vocabulario curado: cada palabra es válida (2-10 letras, [a-zñ]) y existe en el diccionario
+if (!window.LV.VOCAB || window.LV.VOCAB.length < 100) errores.push('LV.VOCAB no cargado o demasiado corto');
+(window.LV.VOCAB || []).forEach(v => {
+  if (!/^[a-zñ]+$/.test(v.w)) errores.push('VOCAB con caracteres no válidos: ' + v.w);
+  else if (v.w.length < 2 || v.w.length > 10) errores.push('VOCAB con longitud fuera de 2-10: ' + v.w);
+  else if (!window.LV.esPalabra(v.w)) errores.push('VOCAB no está en el diccionario: ' + v.w);
+});
 
 const bloquesTray = () => [...doc.querySelectorAll('#tray .bloque')];
 const clickBloqueTray = txt => { const b = bloquesTray().find(x => x.dataset.texto === txt && !x.classList.contains('usado')); b ? b.click() : errores.push('bloque (tray) no encontrado: ' + txt); };
@@ -221,6 +234,6 @@ if (doc.querySelectorAll('#obra .bloque.puesto').length !== objT.length) errores
 press('Escape');
 
 setTimeout(() => {
-  if (errores.length === 0) { console.log('✅ SIN ERRORES (16 modos · bloques + diccionario · teclado físico + táctil · perfiles · PC/tablet)'); process.exit(0); }
+  if (errores.length === 0) { console.log('✅ SIN ERRORES (17 modos · vocabulario + bloques + diccionario · teclado físico + táctil · perfiles · PC/tablet)'); process.exit(0); }
   console.log('❌ ERRORES:'); errores.forEach(e => console.log(' - ' + e)); process.exit(1);
 }, 3000);

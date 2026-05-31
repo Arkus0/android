@@ -273,6 +273,23 @@ body::after  { right: 8%; top: 16%; font-size: 3.5rem; animation-delay: 1.5s; }
 }
 
 /* ====================== Menú principal ====================== */
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.seccion-titulo {
+  width: 100%;
+  max-width: 920px;
+  margin: 18px 0 4px;
+  font-size: clamp(1.1rem, 3.2vw, 1.6rem);
+  font-weight: 900;
+  text-align: left;
+  opacity: .85;
+}
+.menu .seccion-titulo:first-child { margin-top: 4px; }
 .cards {
   display: flex;
   gap: 18px;

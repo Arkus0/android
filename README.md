@@ -61,52 +61,67 @@ letras, flechas, botón "Siguiente ▶" y "🔊 Repetir", y las tarjetas del men
 | **T** | Teclado en pantalla en **QWERTY** o en orden **ABC** |
 | **K** | Teclado en pantalla: **Auto** (PC no / tablet sí) · **Siempre** · **Nunca** |
 
-## 🧩 Los 16 modos (de pulsar a leer y a construir)
+## 🧩 Los 17 modos (de pulsar a leer y a construir)
 
-**Juegos de pulsar** (rápidos, sin teclear — para cuando se cansa de escribir):
+En el menú aparecen **agrupados por secciones** (de más fácil a más avanzado).
+
+**👆 Toca y juega** (rápidos, sin teclear — para cuando se cansa de escribir):
 
 1. **🅰️ Explorar** — Pulsa cualquier letra y cobra vida: la dice en alto y
    enseña su profesión. Ideal para perder el miedo al teclado.
 2. **🖐️ Toca y descubre** — Un tablero de dibujos; toca uno y **aparece su
    palabra** escrita con letras-personaje y se oye. Pulsar y descubrir.
-3. **🔤 ¿Empieza por…?** — Sale una letra grande y varios dibujos; toca el que
-   **empieza por esa letra** (🎨 Pintor → P). Refuerza el sonido inicial.
-4. **⚡ Caza la letra** — Varias letras en pantalla; toca, rápido, la que se
+3. **⚡ Caza la letra** — Varias letras en pantalla; toca, rápido, la que se
    pide. Versión ágil de "Encuentra la letra", solo a toques.
-5. **🃏 Parejas** — Memoria: encuentra la pareja **letra ↔ dibujo**.
+4. **🃏 Parejas** — Memoria: encuentra la pareja **letra ↔ dibujo**.
 
-**Juegos de escribir y leer:**
+**🔤 Conoce las letras:**
 
-6. **📚 Conoce las letras** — Galería del abecedario completo: con las flechas
+5. **📚 Conoce las letras** — Galería del abecedario completo: con las flechas
    recorre las 27 letras (o pulsa una tecla para saltar a ella) y descúbrelas.
-7. **🔎 Encuentra la letra** — Aparece una letra; hay que pulsar esa tecla.
+6. **🔎 Encuentra la letra** — Aparece una letra; hay que pulsar esa tecla.
    Empieza solo con las vocales y va añadiendo letras según acierta.
-8. **🧩 Sílabas** — Lee y escribe sílabas (ma, pe, li...). En Difícil aparecen
+
+**🧩 Sílabas y palabras** (escribir con dibujo de ayuda):
+
+7. **🧩 Sílabas** — Lee y escribe sílabas (ma, pe, li...). En Difícil aparecen
    sílabas trabadas (bra, pla, tro...).
-9. **📖 Palabras** — Dibujo + palabra; la escribe letra a letra.
-10. **🕵️ Letra que falta** — Una palabra con un hueco (en Difícil, dos); hay que
-    pulsar la letra que falta. Razonar + leer.
-11. **👂 Escucha y escribe** — Oye la palabra y la escribe sin verla (con dibujo
-    de ayuda; en Difícil, sin dibujo: dictado puro).
-12. **💬 Frases** — Lee una frase, palabra a palabra: cada Espacio resalta y lee
+8. **📖 Palabras** — Lee la palabra y la escribe letra a letra. Al subir de
+   nivel entran palabras **nuevas y más largas** (vocabulario sin dibujo).
+9. **🕵️ Letra que falta** — Una palabra con un hueco (en Difícil, dos); hay que
+   pulsar la letra que falta. Razonar + leer.
+10. **👂 Escucha y escribe** — Oye la palabra y la escribe sin verla (con dibujo
+    de ayuda; en Difícil, sin dibujo: dictado puro y más vocabulario).
+
+**🆕 Vocabulario nuevo** (palabras de verdad, **sin dibujo**, para aprender
+mucho vocabulario leyendo):
+
+11. **👀 Lee palabras** — Lectura rápida: aparece una palabra nueva, se lee, y
+    con **Siguiente ▶** salta a otra. Mucho vocabulario con poco esfuerzo.
+12. **🔡 Palabras nuevas** — Lectura activa: lee la palabra y **la escribe** tú.
+    Las palabras salen de un banco curado (cientos de palabras, por nivel).
+
+**📖 Lee historias:**
+
+13. **💬 Frases** — Lee una frase, palabra a palabra: cada Espacio resalta y lee
     la siguiente palabra. Fluidez y comprensión.
-13. **📕 Cuentos** — Lee cuentos enteros **escribiendo cada palabra** para
+14. **📕 Cuentos** — Lee cuentos enteros **escribiendo cada palabra** para
     avanzar (así aprende qué letras la forman) y oyéndola al completarla.
     Incluye clásicos y de los Hermanos Grimm (Los tres cerditos, Caperucita,
     Los músicos de Bremen, Ricitos de oro, El patito feo…). ✨
 
-**Juegos de bloques** (piezas tipo Lego con letras / sílabas / palabras que se
-juntan tocándolas):
+**🧱 Construye con bloques** (piezas tipo Lego con letras / sílabas / palabras
+que se juntan tocándolas):
 
-14. **🧱 Taller de bloques** — **Máxima libertad**: junta letras, sílabas y
+15. **🧱 Taller de bloques** — **Máxima libertad**: junta letras, sílabas y
     palabras como quiera. Cuando forma una **palabra de verdad** salta un
     ✨ "¡es una palabra!" y la lee en alto (reconoce **+364.000 palabras** del
     español); las **palabras inventadas** también se leen y se celebran 🙂; y
     puede apilar una **torre gigante** de piezas sin ninguna meta. Sin "has
     perdido": aquí no hay forma de equivocarse.
-15. **🏗️ Construir palabras** — Una palabra con su dibujo; toca las **sílabas
+16. **🏗️ Construir palabras** — Una palabra con su dibujo; toca las **sílabas
     en orden** (o teclea sus letras) y van **encajando** en una torre.
-16. **🚂 Tren de palabras** — Igual pero en horizontal: engancha los
+17. **🚂 Tren de palabras** — Igual pero en horizontal: engancha los
     **vagones-sílaba** en orden y, al completar la palabra, **el tren arranca**.
 
 En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
@@ -117,10 +132,13 @@ navegador**, y puedes **descargar una copia** (botón 💾 en Perfil) para
 pasarla a otro dispositivo o recuperarla con 📂.
 
 ### Niveles
-- **Fácil:** palabras de 3 letras, sílabas simples, un hueco, dictado con dibujo.
-- **Medio:** palabras de 4-5 letras.
-- **Difícil:** palabras con sílabas trabadas, sílabas trabadas, dos huecos y
-  dictado sin dibujo.
+- **Fácil:** palabras cortas, sílabas simples, un hueco, dictado con dibujo.
+- **Medio:** palabras de 4-5 letras y más vocabulario sin dibujo.
+- **Difícil:** palabras con sílabas trabadas, dos huecos, dictado sin dibujo y
+  vocabulario largo (elefante, biblioteca, dinosaurio…).
+
+> La dificultad gradúa también el **vocabulario**: a más nivel, los modos de
+> escribir/leer mezclan más palabras nuevas y largas (sin dibujo).
 
 ## 🛠️ Para quien quiera tocar el código
 
@@ -135,8 +153,8 @@ cargan en orden:
   controles táctiles y detección PC/tablet.
 - `bloques.js` — **sistema de bloques** reutilizable (crear piezas Lego,
   descomponer/silabear, color, encaje y `esPalabra` con el diccionario).
-- `modos.js` — **modos**: menú, perfiles (pantalla) y los 16 juegos, con la
-  entrada unificada `manejarTecla()`.
+- `modos.js` — **modos**: menú (agrupado por secciones), perfiles (pantalla) y
+  los 17 juegos, con la entrada unificada `manejarTecla()`.
 - `diccionario.js` — diccionario grande del español (+364.000 palabras,
   autogenerado y comprimido). Se carga con `defer` para no frenar el menú.
 - `manifest.webmanifest` + `sw.js` + `icon*.png/svg` — la PWA (instalable,
@@ -144,7 +162,8 @@ cargan en orden:
   diccionario con `node tools/gen-diccionario.js`.
 
 Para cambiar el contenido, edita las tablas de `data.js`: `INFO` (letras,
-profesiones y sonidos), `PALABRAS` (palabras + dibujo + dificultad),
+profesiones y sonidos), `PALABRAS` (palabras + dibujo + dificultad), `VOCAB`
+(vocabulario sin dibujo para los modos avanzados, por nivel),
 `BLOQUES_PALABRAS` (palabras con sílabas cortadas para Construir/Tren),
 `FRASES`, `CUENTOS`, `CONS_SIL` y `TRABADAS`.
 
@@ -152,7 +171,7 @@ profesiones y sonidos), `PALABRAS` (palabras + dibujo + dificultad),
 ```bash
 node --check data.js && node --check core.js && node --check bloques.js && node --check modos.js
 npm install jsdom --no-save --prefix /tmp/jsdomtest
-JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 16 modos
+JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 17 modos
 ```
 
 ## 📦 Estado y despliegue
@@ -160,11 +179,12 @@ JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 1
 - **En producción:** https://android-coral-ten.vercel.app
 - Se publica solo: **push a `main` → Vercel despliega producción** (integración
   GitHub↔Vercel). Las ramas generan *previews*.
-- Versión actual: 16 modos (5 de pulsar + 8 de escribir/leer + 3 de bloques),
+- Versión actual: 17 modos (4 de pulsar + 6 de letras/escribir + 2 de
+  vocabulario + 2 de leer + 3 de bloques), menú **agrupado por secciones**,
   3 niveles, teclado físico + táctil, voz nombre/sonido, colección de letras,
-  cuentos, **sistema de bloques** con **taller libre** (diccionario de
-  +364.000 palabras), perfiles por niño (con copia exportable) y PWA
-  instalable/offline.
+  cuentos, **vocabulario sin dibujo** (banco curado + el diccionario de
+  +364.000 palabras lo valida), **sistema de bloques** con **taller libre**,
+  perfiles por niño (con copia exportable) y PWA instalable/offline.
 
 ## 🧭 Cómo continuar
 
