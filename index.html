@@ -27,10 +27,14 @@
   <!-- Capa para confeti y efectos -->
   <div id="fx"></div>
 
-  <!-- JavaScript clásico, en 3 archivos (funciona abriendo el archivo con doble clic).
-       El orden importa: data.js → core.js → modos.js -->
+  <!-- JavaScript clásico (funciona abriendo el archivo con doble clic).
+       El orden importa: data.js → core.js → bloques.js → modos.js
+       diccionario.js (grande) se carga con defer: NO bloquea el menú y
+       rellena LV.DIC poco después para reconocer palabras de verdad. -->
   <script src="data.js"></script>
   <script src="core.js"></script>
+  <script src="bloques.js"></script>
   <script src="modos.js"></script>
+  <script defer src="diccionario.js"></script>
 </body>
 </html>

@@ -41,7 +41,10 @@
     { id:"falta",    icono:"🕵️",  nombre:"Letra que falta",    voz:"Letra que falta. ¿Qué letra falta en la palabra?" },
     { id:"dictado",  icono:"👂",  nombre:"Escucha y escribe",  voz:"Escucha y escribe. Escribe la palabra que oigas." },
     { id:"frases",   icono:"💬",  nombre:"Frases",             voz:"Frases. Lee una frase, palabra a palabra." },
-    { id:"cuentos",  icono:"📕",  nombre:"Cuentos",            voz:"Cuentos. Lee un cuento entero, palabra a palabra." }
+    { id:"cuentos",  icono:"📕",  nombre:"Cuentos",            voz:"Cuentos. Lee un cuento entero, palabra a palabra." },
+    { id:"taller",   icono:"🧱",  nombre:"Taller de bloques",  voz:"Taller de bloques. Junta letras y sílabas como quieras y crea palabras. ¡Lo que tú quieras!" },
+    { id:"construir",icono:"🏗️",  nombre:"Construir palabras",  voz:"Construir palabras. Toca las sílabas en orden para levantar la torre." },
+    { id:"tren",     icono:"🚂",  nombre:"Tren de palabras",   voz:"Tren de palabras. Engancha los vagones en orden y el tren arrancará." }
   ];
 
   var INICIAR = {}; // id -> función de arranque (se rellena más abajo)
@@ -730,12 +733,210 @@
     }
   }
 
+  /* ==================================================================
+     BLOQUES (Lego de letras/sílabas/palabras) — usan el motor bloques.js
+     Taller libre (crear lo que quiera) + Construir (torre) + Tren.
+     ================================================================== */
+  var CB = LV.crearBloque, BF = LV.bloqueFantasma, encajar = LV.encajar,
+      colorBloque = LV.colorBloque, esPalabra = LV.esPalabra,
+      BLOQUES_PALABRAS = LV.BLOQUES_PALABRAS;
+
+  /* ---------------- TALLER LIBRE (máxima libertad) ---------------- */
+  function iniciarTaller() {
+    S.pantalla = "taller"; hudVisible(true);
+    S.taller = { piezas: [], cat: "silabas", ultima: "" };
+    pintarControles("taller");
+    pintarTaller();
+  }
+  function inventarioCat(cat) {
+    if (cat === "letras") return LV.invLetras();
+    if (cat === "palabras") return LV.invPalabras();
+    return LV.invSilabas();
+  }
+  function pintarTaller() {
+    limpiar(app);
+    app.appendChild(el("p", "prompt", "🧱 Junta piezas y crea lo que quieras"));
+    var stage = el("div", "stage taller"); stage.id = "stage";
+    var obra = el("div", "muro"); obra.id = "obra"; stage.appendChild(obra);
+    var tabs = el("div", "tabs-bloques");
+    [["silabas", "🧩 Sílabas"], ["letras", "🔤 Letras"], ["palabras", "📖 Palabras"]].forEach(function (c) {
+      var b = el("button", "tab-bloque" + (S.taller.cat === c[0] ? " sel" : ""), c[1]);
+      tap(b, (function (cat) { return function () { S.taller.cat = cat; pintarTaller(); }; })(c[0]));
+      tabs.appendChild(b);
+    });
+    stage.appendChild(tabs);
+    var pal = el("div", "paleta"); pal.id = "paleta";
+    inventarioCat(S.taller.cat).forEach(function (spec) {
+      pal.appendChild(CB(spec, { tamRem: 3, onTap: anadirPieza }));
+    });
+    stage.appendChild(pal);
+    app.appendChild(stage);
+    pintarMuro();
+  }
+  function bloqueDe(spec, tamRem) {
+    return CB({ tipo: spec.tipo, texto: spec.texto, color: spec.color, e: spec.e }, { tamRem: tamRem });
+  }
+  function pintarMuro() {
+    var obra = document.getElementById("obra"); if (!obra) return;
+    limpiar(obra);
+    if (S.taller.piezas.length === 0) {
+      obra.appendChild(el("div", "muro-pista", "👉 Toca piezas de abajo para empezar a construir"));
+      return;
+    }
+    S.taller.piezas.forEach(function (spec) { obra.appendChild(bloqueDe(spec, 4)); });
+  }
+  function anadirPieza(spec) {
+    var primera = S.taller.piezas.length === 0;
+    S.taller.piezas.push(spec);
+    var obra = document.getElementById("obra");
+    if (obra) {
+      if (primera) limpiar(obra);
+      var nodo = bloqueDe(spec, 4); obra.appendChild(nodo); encajar(nodo);
+    }
+    revisarTaller();
+  }
+  function palabraTaller() { return S.taller.piezas.map(function (p) { return p.texto; }).join(""); }
+  function revisarTaller() {
+    var t = S.taller, palabra = palabraTaller();
+    if (t.piezas.length > 0 && t.piezas.length % 10 === 0) {
+      sfxFanfarria(); cartel("🗼 ¡" + t.piezas.length + " piezas! ¡Vaya torre!");
+    }
+    if (palabra !== t.ultima && esPalabra(palabra)) {
+      t.ultima = palabra;
+      sfxBien(); confeti(document.getElementById("obra"));
+      sumarEstrella(); descubrir(palabra.charAt(0));
+      cartel("✨ ¡" + palabra.toUpperCase() + " es una palabra!");
+      hablar("¡" + palabra + "! ¡Es una palabra de verdad!");
+    }
+  }
+  function leerTaller() {
+    var palabra = palabraTaller();
+    if (!palabra) { hablar("Toca piezas para construir una palabra"); return; }
+    if (esPalabra(palabra)) { hablar("¡" + palabra + "! Es una palabra de verdad"); cartel("✨ ¡Es una palabra!"); }
+    else { hablar(palabra + ". ¡Te la has inventado!"); cartel("🙂 ¡Palabra inventada!: " + palabra); }
+  }
+  function quitarPieza() {
+    if (S.taller.piezas.length === 0) return;
+    S.taller.piezas.pop(); S.taller.ultima = ""; sfxPop(); pintarMuro();
+  }
+  function vaciarTaller() {
+    if (S.taller.piezas.length === 0) return;
+    S.taller.piezas = []; S.taller.ultima = ""; sfxUps(); pintarMuro();
+  }
+
+  /* ---------------- CONSTRUIR (torre) y TREN (horizontal) ---------------- */
+  function bloquesPool() {
+    var p = BLOQUES_PALABRAS.filter(function (x) { return x.d <= S.nivel; });
+    return p.length ? p : BLOQUES_PALABRAS;
+  }
+  function construirBandeja(objetivo) {
+    var specs = objetivo.map(function (s) { return { tipo: "silaba", texto: s, color: colorBloque(s) }; });
+    var usadas = objetivo.slice(), n = S.nivel, intentos = 0; // nº distractores = nivel (0/1/2)
+    while (n > 0 && intentos < 60) {
+      var d = azar(CONS_SIL) + azar(VOCALES); intentos++;
+      if (usadas.indexOf(d) < 0) { usadas.push(d); specs.push({ tipo: "silaba", texto: d, color: colorBloque(d) }); n--; }
+    }
+    return barajar(specs);
+  }
+  function iniciarConstruir() { S.pantalla = "construir"; hudVisible(true); S.bloques = { prev: null }; pintarControles("bloques"); nuevaObra(); }
+  function iniciarTren() { S.pantalla = "tren"; hudVisible(true); S.bloques = { prev: null }; pintarControles("bloques"); nuevaObra(); }
+  function nuevaObra() {
+    S.celebrando = false;
+    var pool = bloquesPool(), prev = S.bloques && S.bloques.prev, item;
+    do { item = azar(pool); } while (pool.length > 1 && item.w === prev);
+    S.bloques = { item: item, objetivo: item.sil, puestas: 0, tecleo: "", intentos: 0,
+      bandeja: construirBandeja(item.sil), prev: item.w };
+    pintarObraGuiada();
+    hablar(item.w);
+  }
+  function pintarObraGuiada() {
+    var B = S.bloques, esTren = S.pantalla === "tren";
+    limpiar(app);
+    app.appendChild(el("p", "prompt", esTren ? "Engancha los vagones en orden 🚂" : "Toca las sílabas en orden 🏗️"));
+    var stage = el("div", "stage"); stage.id = "stage";
+    var dib = el("div", "dibujo", B.item.e); dib.style.width = "100%"; stage.appendChild(dib);
+    var obra = el("div", esTren ? "tren" : "torre"); obra.id = "obra";
+    if (esTren) obra.appendChild(el("div", "loco", "🚂"));
+    B.objetivo.forEach(function (s, i) {
+      var hueco = BF({ tipo: "silaba", texto: s, color: colorBloque(s) }, { tamRem: 4.5 });
+      hueco.dataset.pos = i; obra.appendChild(hueco);
+    });
+    stage.appendChild(obra);
+    var tray = el("div", "bloque-tray"); tray.id = "tray";
+    B.bandeja.forEach(function (spec) { tray.appendChild(CB(spec, { tamRem: 4.5, onTap: onTapGuiado })); });
+    stage.appendChild(tray); app.appendChild(stage);
+    resaltarSlot();
+  }
+  function resaltarSlot() {
+    var huecos = app.querySelectorAll("#obra .fantasma");
+    for (var i = 0; i < huecos.length; i++) huecos[i].classList.remove("activo");
+    var act = app.querySelector('#obra .fantasma[data-pos="' + S.bloques.puestas + '"]');
+    if (act) act.classList.add("activo");
+  }
+  function onTapGuiado(spec, node) {
+    if (S.celebrando) return;
+    var esperada = S.bloques.objetivo[S.bloques.puestas];
+    if (spec.texto === esperada) colocarSilaba(esperada, node);
+    else fallaGuiado(node);
+  }
+  function fallaGuiado(node) {
+    S.bloques.intentos++; sfxUps();
+    if (node) animar(node, "oops", 400);
+    if (S.bloques.intentos >= 2) darPista();
+  }
+  function colocarSilaba(sil, nodeBandeja) {
+    var B = S.bloques;
+    var hueco = app.querySelector('#obra .fantasma[data-pos="' + B.puestas + '"]');
+    if (hueco) {
+      var real = CB({ tipo: "silaba", texto: sil, color: colorBloque(sil) }, { tamRem: 4.5 });
+      real.classList.add("puesto"); real.dataset.pos = B.puestas;
+      hueco.parentNode.replaceChild(real, hueco); encajar(real);
+    }
+    if (nodeBandeja) nodeBandeja.classList.add("usado");
+    registrar(sil.charAt(0), true);
+    B.puestas++; B.tecleo = ""; B.intentos = 0;
+    if (B.puestas >= B.objetivo.length) completarObra();
+    else resaltarSlot();
+  }
+  function teclearLetraBloque(letra) {
+    var B = S.bloques, esperada = B.objetivo[B.puestas], sig = esperada.charAt(B.tecleo.length);
+    if (letra === sig) {
+      B.tecleo += letra; sfxTick();
+      if (B.tecleo === esperada) {
+        var node = app.querySelector('#tray .bloque[data-texto="' + esperada + '"]:not(.usado)');
+        colocarSilaba(esperada, node);
+      }
+    } else {
+      B.intentos++; sfxUps(); B.tecleo = "";
+      var act = app.querySelector('#obra .fantasma[data-pos="' + B.puestas + '"]');
+      if (act) animar(act, "oops", 400);
+      if (B.intentos >= 2) darPista();
+    }
+  }
+  function darPista() {
+    var esperada = S.bloques.objetivo[S.bloques.puestas];
+    hablar("La sílaba es " + esperada);
+    var t = app.querySelector('#tray .bloque[data-texto="' + esperada + '"]:not(.usado)');
+    if (t) { t.classList.add("pista"); setTimeout(function () { t.classList.remove("pista"); }, 1600); }
+  }
+  function completarObra() {
+    var B = S.bloques, esTren = S.pantalla === "tren";
+    S.celebrando = true; sfxBien(); confeti(document.getElementById("stage"));
+    sumarEstrella(); descubrir(B.item.w.charAt(0));
+    hablar("¡" + B.item.w + "! ¡Muy bien!");
+    var obra = document.getElementById("obra");
+    if (esTren && obra) { obra.classList.add("arranca"); setTimeout(function () { sfxFanfarria(); }, 300); }
+    else if (obra) animar(obra, "happy", 700);
+    var pant = S.pantalla;
+    setTimeout(function () { if (S.pantalla === pant) nuevaObra(); }, esTren ? 2200 : 1600);
+  }
+
   /* Registrar todas las funciones de arranque */
   INICIAR = {
     explora: iniciarExplora, toca: iniciarToca, empieza: iniciarEmpieza, caza: iniciarCaza,
     parejas: iniciarParejas, galeria: iniciarGaleria, busca: iniciarBusca, silabas: iniciarSilabas,
     palabras: iniciarPalabras, falta: iniciarFalta, dictado: iniciarDictado, frases: iniciarFrases,
-    cuentos: iniciarCuentos
+    cuentos: iniciarCuentos, taller: iniciarTaller, construir: iniciarConstruir, tren: iniciarTren
   };
 
   /* ------------------------------------------------------------------
@@ -810,6 +1011,19 @@
       if (esLetra(k)) escribirCuento(k.toLowerCase());
       return;
     }
+    if (S.pantalla === "taller") {
+      if (k === "Enter" || k === " ") { leerTaller(); return; }
+      if (k === "Backspace") { quitarPieza(); return; }
+      if (k === "Delete") { vaciarTaller(); return; }
+      if (esLetra(k)) anadirPieza({ tipo: "letra", texto: k.toLowerCase() });
+      return;
+    }
+    if (S.pantalla === "construir" || S.pantalla === "tren") {
+      if (S.celebrando) return;
+      if (k === "Enter" || k === " ") { hablar(S.bloques.item.w); return; }
+      if (esLetra(k)) teclearLetraBloque(k.toLowerCase());
+      return;
+    }
   }
 
   function teclaHome(k) {
@@ -827,7 +1041,8 @@
   }
 
   function teclaUsada(k) {
-    return k === " " || k === "Enter" || k === "Escape" || /^Arrow/.test(k) || esLetra(k) || (k >= "0" && k <= "9");
+    return k === " " || k === "Enter" || k === "Escape" || k === "Backspace" || k === "Delete" ||
+      /^Arrow/.test(k) || esLetra(k) || (k >= "0" && k <= "9");
   }
   document.addEventListener("keydown", function (ev) {
     if (teclaUsada(ev.key)) ev.preventDefault();

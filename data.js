@@ -73,6 +73,24 @@ LV.PALABRAS = [
   {w:"dragon",e:"🐉",d:2},{w:"brujo",e:"🧙",d:2},{w:"trompo",e:"🪀",d:2}
 ];
 
+/* Palabras con SÍLABAS ya cortadas (sin tildes) para los modos de BLOQUES
+   guiados (Construir palabras / Tren de palabras). Cada sil.join("") === w.
+   d: 0 dos sílabas CV · 1 tres sílabas · 2 trabadas/CVC/4 sílabas. */
+LV.BLOQUES_PALABRAS = [
+  {w:"gato",  e:"🐱", sil:["ga","to"],       d:0}, {w:"casa",  e:"🏠", sil:["ca","sa"],       d:0},
+  {w:"pato",  e:"🦆", sil:["pa","to"],       d:0}, {w:"mesa",  e:"🪑", sil:["me","sa"],       d:0},
+  {w:"sopa",  e:"🍲", sil:["so","pa"],       d:0}, {w:"luna",  e:"🌙", sil:["lu","na"],       d:0},
+  {w:"dedo",  e:"☝️", sil:["de","do"],       d:0}, {w:"vaca",  e:"🐄", sil:["va","ca"],       d:0},
+  {w:"pino",  e:"🌲", sil:["pi","no"],       d:0}, {w:"foca",  e:"🦭", sil:["fo","ca"],       d:0},
+  {w:"pelota",e:"⚽", sil:["pe","lo","ta"],  d:1}, {w:"camisa",e:"👕", sil:["ca","mi","sa"],  d:1},
+  {w:"tomate",e:"🍅", sil:["to","ma","te"],  d:1}, {w:"banana",e:"🍌", sil:["ba","na","na"],  d:1},
+  {w:"zapato",e:"👟", sil:["za","pa","to"],  d:1}, {w:"cabeza",e:"🗣️", sil:["ca","be","za"],  d:1},
+  {w:"pajaro",e:"🐦", sil:["pa","ja","ro"],  d:1}, {w:"gusano",e:"🐛", sil:["gu","sa","no"],  d:1},
+  {w:"globo", e:"🎈", sil:["glo","bo"],      d:2}, {w:"plato", e:"🍽️", sil:["pla","to"],      d:2},
+  {w:"tigre", e:"🐯", sil:["ti","gre"],      d:2}, {w:"manzana",e:"🍎",sil:["man","za","na"], d:2},
+  {w:"elefante",e:"🐘",sil:["e","le","fan","te"],d:2}, {w:"cocodrilo",e:"🐊",sil:["co","co","dri","lo"],d:2}
+];
+
 /* Frases sueltas para leer (solo lectura: usamos tildes, suenan mejor) */
 LV.FRASES = [
   {t:"el sol es amarillo", e:"☀️"},

@@ -61,7 +61,7 @@ letras, flechas, botón "Siguiente ▶" y "🔊 Repetir", y las tarjetas del men
 | **T** | Teclado en pantalla en **QWERTY** o en orden **ABC** |
 | **K** | Teclado en pantalla: **Auto** (PC no / tablet sí) · **Siempre** · **Nunca** |
 
-## 🧩 Los 13 modos (de pulsar a leer)
+## 🧩 Los 16 modos (de pulsar a leer y a construir)
 
 **Juegos de pulsar** (rápidos, sin teclear — para cuando se cansa de escribir):
 
@@ -95,6 +95,20 @@ letras, flechas, botón "Siguiente ▶" y "🔊 Repetir", y las tarjetas del men
     Incluye clásicos y de los Hermanos Grimm (Los tres cerditos, Caperucita,
     Los músicos de Bremen, Ricitos de oro, El patito feo…). ✨
 
+**Juegos de bloques** (piezas tipo Lego con letras / sílabas / palabras que se
+juntan tocándolas):
+
+14. **🧱 Taller de bloques** — **Máxima libertad**: junta letras, sílabas y
+    palabras como quiera. Cuando forma una **palabra de verdad** salta un
+    ✨ "¡es una palabra!" y la lee en alto (reconoce **+364.000 palabras** del
+    español); las **palabras inventadas** también se leen y se celebran 🙂; y
+    puede apilar una **torre gigante** de piezas sin ninguna meta. Sin "has
+    perdido": aquí no hay forma de equivocarse.
+15. **🏗️ Construir palabras** — Una palabra con su dibujo; toca las **sílabas
+    en orden** (o teclea sus letras) y van **encajando** en una torre.
+16. **🚂 Tren de palabras** — Igual pero en horizontal: engancha los
+    **vagones-sílaba** en orden y, al completar la palabra, **el tren arranca**.
+
 En todos los modos: si se equivoca **no pasa nada malo**, solo un sonidito
 suave; tras un par de intentos el juego le da una pista. Cada acierto suma
 una ⭐ (fiesta de confeti cada 10) y va completando la colección 📚 de las
@@ -119,20 +133,26 @@ cargan en orden:
 - `data.js` — **datos** del juego (letras, palabras, frases, cuentos…).
 - `core.js` — **motor**: perfiles, persistencia, audio, efectos, HUD,
   controles táctiles y detección PC/tablet.
-- `modos.js` — **modos**: menú, perfiles (pantalla) y los 13 juegos, con la
+- `bloques.js` — **sistema de bloques** reutilizable (crear piezas Lego,
+  descomponer/silabear, color, encaje y `esPalabra` con el diccionario).
+- `modos.js` — **modos**: menú, perfiles (pantalla) y los 16 juegos, con la
   entrada unificada `manejarTecla()`.
+- `diccionario.js` — diccionario grande del español (+364.000 palabras,
+  autogenerado y comprimido). Se carga con `defer` para no frenar el menú.
 - `manifest.webmanifest` + `sw.js` + `icon*.png/svg` — la PWA (instalable,
-  offline). Los iconos se generan con `node tools/gen-icons.js`.
+  offline). Los iconos se generan con `node tools/gen-icons.js` y el
+  diccionario con `node tools/gen-diccionario.js`.
 
 Para cambiar el contenido, edita las tablas de `data.js`: `INFO` (letras,
 profesiones y sonidos), `PALABRAS` (palabras + dibujo + dificultad),
+`BLOQUES_PALABRAS` (palabras con sílabas cortadas para Construir/Tren),
 `FRASES`, `CUENTOS`, `CONS_SIL` y `TRABADAS`.
 
 ### Probar los cambios
 ```bash
-node --check data.js && node --check core.js && node --check modos.js
+node --check data.js && node --check core.js && node --check bloques.js && node --check modos.js
 npm install jsdom --no-save --prefix /tmp/jsdomtest
-JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 13 modos
+JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 16 modos
 ```
 
 ## 📦 Estado y despliegue
@@ -140,9 +160,11 @@ JSDOM_DIR=/tmp/jsdomtest node test/smoke.js   # simula teclado y toques en los 1
 - **En producción:** https://android-coral-ten.vercel.app
 - Se publica solo: **push a `main` → Vercel despliega producción** (integración
   GitHub↔Vercel). Las ramas generan *previews*.
-- Versión actual: 13 modos (5 de pulsar + 8 de escribir/leer), 3 niveles,
-  teclado físico + táctil, voz nombre/sonido, colección de letras, cuentos,
-  perfiles por niño (con copia exportable) y PWA instalable/offline.
+- Versión actual: 16 modos (5 de pulsar + 8 de escribir/leer + 3 de bloques),
+  3 niveles, teclado físico + táctil, voz nombre/sonido, colección de letras,
+  cuentos, **sistema de bloques** con **taller libre** (diccionario de
+  +364.000 palabras), perfiles por niño (con copia exportable) y PWA
+  instalable/offline.
 
 ## 🧭 Cómo continuar
 

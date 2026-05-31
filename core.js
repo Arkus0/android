@@ -415,7 +415,7 @@
     document.body.classList.remove("con-teclado");
     if (tipo === "none") { controles.style.display = "none"; return; }
 
-    var conTeclado = (tipo === "teclado" || tipo === "galeria") && tecladoEnPantalla();
+    var conTeclado = (tipo === "teclado" || tipo === "galeria" || tipo === "bloques") && tecladoEnPantalla();
     var barra = el("div", "barra"), hayBarra = true;
 
     if (tipo === "galeria") {
@@ -425,7 +425,12 @@
     } else if (tipo === "frases") {
       barra.appendChild(bctrl("🔊 Repetir", "Enter"));
       barra.appendChild(bctrl("Siguiente ▶", " ", "grande"));
-    } else { // teclado
+    } else if (tipo === "taller") {
+      // Taller libre: la PALETA (en #app) es la entrada; aquí solo acciones.
+      barra.appendChild(bctrl("🔊 Leer", "Enter"));
+      barra.appendChild(bctrl("⬅️ Quitar", "Backspace"));
+      barra.appendChild(bctrl("🗑️ Vaciar", "Delete"));
+    } else { // teclado | bloques
       barra.appendChild(bctrl("🔊 Repetir", "Enter"));
     }
 
