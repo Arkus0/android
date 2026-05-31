@@ -1,12 +1,13 @@
 /* =====================================================================
    Test de humo de "Las Letras Vivas" con jsdom.
-   Carga los 3 scripts (data.js → core.js → modos.js) y simula teclado
-   FÍSICO y TÁCTIL en los 13 modos (incluidos los 4 juegos de pulsar) +
-   perfiles + separación PC/tablet, comprobando que no salta ninguna
-   excepción. No es exhaustivo: detecta errores de carga/runtime.
+   Carga los scripts (data.js → core.js → bloques.js → modos.js → diccionario.js)
+   y simula teclado FÍSICO y TÁCTIL en los 16 modos (incluidos los juegos de
+   pulsar y los de bloques: taller libre, construir y tren) + perfiles +
+   separación PC/tablet, comprobando que no salta ninguna excepción.
+   No es exhaustivo: detecta errores de carga/runtime.
 
    Uso:
-     node --check data.js && node --check core.js && node --check modos.js
+     node --check data.js && node --check core.js && node --check bloques.js && node --check modos.js
      npm install jsdom --no-save --prefix /tmp/jsdomtest
      JSDOM_DIR=/tmp/jsdomtest node test/smoke.js
    ===================================================================== */
@@ -54,8 +55,8 @@ Object.defineProperty(window.document, 'fullscreenElement', { get() { return nul
 window.matchMedia = q => ({ matches: /coarse/.test(q), media: q, onchange: null,
   addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
 
-// --- cargar el juego (3 scripts en orden) ---
-['data.js', 'core.js', 'modos.js'].forEach(f => {
+// --- cargar el juego (scripts en orden; diccionario.js al final) ---
+['data.js', 'core.js', 'bloques.js', 'modos.js', 'diccionario.js'].forEach(f => {
   const code = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
   const script = window.document.createElement('script');
   script.textContent = code;
@@ -73,7 +74,7 @@ const clickLetra = L => { const b = kteclas().find(x => x.textContent.toLowerCas
 
 // ===== recorrido =====
 click(doc.getElementById('app'), '#app (intro->home)');
-if (doc.querySelectorAll('.card').length !== 13) errores.push('Se esperaban 13 tarjetas, hay ' + doc.querySelectorAll('.card').length);
+if (doc.querySelectorAll('.card').length !== 16) errores.push('Se esperaban 16 tarjetas, hay ' + doc.querySelectorAll('.card').length);
 click(doc.querySelectorAll('.boton-hud')[1], 'fullscreen');
 click(doc.querySelectorAll('.ajustes .badge')[1], 'badge voz'); // toggla la voz
 
@@ -175,7 +176,51 @@ if (kteclas().length !== 0) errores.push('En modo "Nunca" no debería haber tecl
 chars().map(c => c.dataset.letra).forEach(press); // se juega con teclado físico
 press('Escape');
 
+// ===== BLOQUES: diccionario + sílabas curadas + los 3 modos =====
+// Integridad de las sílabas curadas (cada sil.join('') === la palabra)
+window.LV.BLOQUES_PALABRAS.forEach(p => { if (p.sil.join('') !== p.w) errores.push('Silabeo curado mal: ' + p.w); });
+// Diccionario cargado y funcionando
+if (!window.LV.DIC || window.LV.DIC.size < 100000) errores.push('Diccionario no cargado o demasiado pequeño');
+if (!window.LV.esPalabra('casa')) errores.push('esPalabra("casa") debería ser true');
+if (window.LV.esPalabra('xqzpt')) errores.push('esPalabra inventada debería ser false');
+
+const bloquesTray = () => [...doc.querySelectorAll('#tray .bloque')];
+const clickBloqueTray = txt => { const b = bloquesTray().find(x => x.dataset.texto === txt && !x.classList.contains('usado')); b ? b.click() : errores.push('bloque (tray) no encontrado: ' + txt); };
+const tocarPaleta = txt => { const b = [...doc.querySelectorAll('#paleta .bloque')].find(x => x.dataset.texto === txt); b ? b.click() : errores.push('paleta sin pieza: ' + txt); };
+
+// --- TALLER LIBRE: tocar piezas, leer, quitar, vaciar, teclear ---
+click(card('taller'), 'card taller');
+if (!doc.querySelector('#paleta .bloque')) errores.push('Taller: paleta vacía');
+tocarPaleta('ca'); tocarPaleta('sa');                 // construir "casa" (palabra real)
+if (doc.querySelectorAll('#obra .bloque').length !== 2) errores.push('Taller: no se añadieron 2 piezas');
+press('Enter');                                       // leer (no debe romper)
+press('Backspace');                                   // quitar una pieza
+if (doc.querySelectorAll('#obra .bloque').length !== 1) errores.push('Taller: Backspace no quitó pieza');
+const tabLetras = [...doc.querySelectorAll('.tab-bloque')].find(b => /Letras/.test(b.textContent));
+click(tabLetras, 'tab Letras');
+press('s');                                           // añadir letra por teclado físico
+press('Delete');                                      // vaciar
+if (doc.querySelectorAll('#obra .bloque').length !== 0) errores.push('Taller: Delete no vació');
+press('Escape');
+
+// --- CONSTRUIR (torre): tocar las sílabas en orden ---
+click(card('construir'), 'card construir');
+if (!doc.querySelector('#obra.torre')) errores.push('Construir: la obra no es una torre');
+const objCons = [...doc.querySelectorAll('#obra .fantasma')].map(h => h.dataset.texto);
+if (objCons.length === 0) errores.push('Construir: no hay huecos');
+objCons.forEach(clickBloqueTray);
+if (doc.querySelectorAll('#obra .bloque.puesto').length !== objCons.length) errores.push('Construir: no se colocaron todas las sílabas');
+press('Escape');
+
+// --- TREN: teclear letra a letra para enganchar los vagones ---
+click(card('tren'), 'card tren');
+if (!doc.querySelector('#obra.tren .loco')) errores.push('Tren: falta la locomotora');
+const objT = [...doc.querySelectorAll('#obra .fantasma')].map(h => h.dataset.texto);
+objT.forEach(sil => sil.split('').forEach(press));
+if (doc.querySelectorAll('#obra .bloque.puesto').length !== objT.length) errores.push('Tren: el tecleo no enganchó todos los vagones');
+press('Escape');
+
 setTimeout(() => {
-  if (errores.length === 0) { console.log('✅ SIN ERRORES (13 modos · teclado físico + táctil · perfiles · PC/tablet)'); process.exit(0); }
+  if (errores.length === 0) { console.log('✅ SIN ERRORES (16 modos · bloques + diccionario · teclado físico + táctil · perfiles · PC/tablet)'); process.exit(0); }
   console.log('❌ ERRORES:'); errores.forEach(e => console.log(' - ' + e)); process.exit(1);
 }, 3000);

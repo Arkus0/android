@@ -24,10 +24,11 @@ El usuario es un peque con **altas capacidades** que está aprendiendo a leer
 ## 2. Estado actual (live)
 
 - **Producción:** https://android-coral-ten.vercel.app (rama `main`).
-- Versión con **13 modos** (5 de **pulsar** + 8 de **escribir/leer**),
-  **3 niveles**, teclado físico + táctil, voz por nombre/sonido, colección de
-  27 letras, **Cuentos**, **perfiles por niño** (con copia exportable) y
-  **PWA** instalable/offline.
+- Versión con **16 modos** (5 de **pulsar** + 8 de **escribir/leer** + 3 de
+  **bloques**), **3 niveles**, teclado físico + táctil, voz por nombre/sonido,
+  colección de 27 letras, **Cuentos**, **sistema de bloques** (🧱 Taller libre
+  con diccionario de +364k palabras, 🏗️ Construir y 🚂 Tren), **perfiles por
+  niño** (con copia exportable) y **PWA** instalable/offline.
 
 ## 3. Stack y archivos
 
@@ -36,21 +37,26 @@ Pensado para abrirse incluso con **doble clic** en `index.html` (por eso se usa
 JavaScript clásico con `<script src>`, **no ES modules**, que romperían por CORS
 en `file://`).
 
-La lógica está **separada en 3 scripts clásicos** que comparten el espacio de
-nombres global **`LV`** y se cargan EN ORDEN (`data.js` → `core.js` → `modos.js`).
-No son módulos: cada uno escribe/lee en `LV`.
+La lógica está **separada en scripts clásicos** que comparten el espacio de
+nombres global **`LV`** y se cargan EN ORDEN (`data.js` → `core.js` →
+`bloques.js` → `modos.js`; `diccionario.js` con `defer`). No son módulos: cada
+uno escribe/lee en `LV`.
 
 ```
 index.html        #app (juego), #controles (teclado táctil), #fx (confeti) + metas/manifest PWA
-style.css         Apariencia, animaciones, layout responsive, teclado en pantalla y juegos de pulsar
-data.js           DATOS: LV.INFO, LV.PALABRAS, LV.FRASES, LV.CUENTOS, layouts, niveles, avatares…
+style.css         Apariencia, animaciones, layout responsive, teclado en pantalla, juegos de pulsar y BLOQUES
+data.js           DATOS: LV.INFO, LV.PALABRAS, LV.BLOQUES_PALABRAS, LV.FRASES, LV.CUENTOS, layouts, niveles…
 core.js           MOTOR: perfiles+persistencia, audio, DOM/personajes, efectos, HUD, controles,
                   detección PC/tablet, registro del SW. Expone helpers en LV.
-modos.js          MODOS: menú, pantalla de perfiles y los 13 juegos + manejarTecla() (entrada única).
+bloques.js        SISTEMA DE BLOQUES (reutilizable): crearBloque/bloqueFantasma, descomponer, silabear
+                  (best-effort), colorBloque, encajar, normalizar, esPalabra (LV.DIC), inventarios de piezas.
+modos.js          MODOS: menú, pantalla de perfiles y los 16 juegos + manejarTecla() (entrada única).
+diccionario.js    AUTOGENERADO: +364k palabras del español (front-coding) → LV.DIC (Set). Carga con defer.
 manifest.webmanifest  Manifiesto PWA (icono, display fullscreen, theme).
 sw.js             Service worker: cachea la app shell para offline (sube CACHE al cambiar archivos).
 icon.svg / icon-*.png  Iconos de la app (PNG generados con tools/gen-icons.js).
-tools/gen-icons.js     Generador de los PNG del icono (Node puro, zlib; herramienta de un solo uso).
+tools/gen-icons.js        Generador de los PNG del icono (Node puro, zlib; herramienta de un solo uso).
+tools/gen-diccionario.js  Generador de diccionario.js (filtra+comprime an-array-of-spanish-words, MIT).
 test/smoke.js     Test de humo con jsdom (ver §5)
 README.md         Guía para el usuario/jugador + estado + roadmap
 CLAUDE.md         Este documento
@@ -65,16 +71,18 @@ CLAUDE.md         Este documento
   El formato plano antiguo se **migra** a un perfil "Peque" al cargar.
   `core.js` mantiene `S` (espejo del perfil activo) y `persistir()` lo vuelca.
 
-## 4. Mapa del código (data.js / core.js / modos.js)
+## 4. Mapa del código (data.js / core.js / bloques.js / modos.js)
 
 Todo comparte el objeto global **`LV`**. Orden de carga obligatorio:
-`data.js` → `core.js` → `modos.js`.
+`data.js` → `core.js` → `bloques.js` → `modos.js` (+ `diccionario.js` con
+`defer`, que solo rellena `LV.DIC`).
 
 **`data.js`** — solo datos en `LV.*`: `INFO` (cada letra: `n` nombre, `p`
 profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
-`FRASES`, `CUENTOS` (título + páginas), `CONS_SIL`, `TRABADAS`,
-`LAYOUT_QWERTY`/`LAYOUT_ABC`, `NIVELES`, `ABECEDARIO`, `ORDEN_ABC`, `VOCALES`,
-`AVATARES`.
+`BLOQUES_PALABRAS` (`w/e/sil/d`: palabras con sílabas CURADAS y sin tildes para
+los modos Construir/Tren; cada `sil.join("")===w`), `FRASES`, `CUENTOS` (título
++ páginas), `CONS_SIL`, `TRABADAS`, `LAYOUT_QWERTY`/`LAYOUT_ABC`, `NIVELES`,
+`ABECEDARIO`, `ORDEN_ABC`, `VOCALES`, `AVATARES`.
 
 **`core.js`** (IIFE; expone helpers en `LV`):
 - **PERFILES + persistencia** — `cargarBD()` (con migración del formato
@@ -88,13 +96,29 @@ profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
   `personaje()`, `ranura()`, `revelar()`, `tam(rem)`.
 - **EFECTOS** — `confeti/cartel/sumarEstrella/descubrir`.
 - **HUD** — `hudVisible()`, `pantallaCompleta()`. ⛶ siempre; ⬅️/⭐ en juego.
-- **CONTROLES** — `pintarControles(tipo)` (`none|teclado|galeria|frases`); el
-  teclado de letras solo se pinta si `tecladoEnPantalla()` y entonces añade
-  `body.con-teclado` (el CSS comprime el juego para que no tape letras).
+- **CONTROLES** — `pintarControles(tipo)` (`none|teclado|galeria|frases|bloques|
+  taller`); el teclado de letras se pinta (si `tecladoEnPantalla()`) en
+  `teclado`/`galeria`/`bloques`, y entonces añade `body.con-teclado` (el CSS
+  comprime el juego). `taller` solo pinta una barra (🔊 Leer · ⬅️ Quitar ·
+  🗑️ Vaciar); su entrada de piezas es la PALETA en `#app`.
 - **PWA** — `registrarSW()` (solo bajo http/https; en `file://` no hace nada).
 
+**`bloques.js`** (IIFE; toma helpers de `LV`) — **SISTEMA DE BLOQUES reutilizable**
+(base para futuros juegos: tetris, construcciones…). NO conoce objetivos ni
+victorias; solo piezas y reconocimiento de palabras:
+- `crearBloque(spec,opts)` / `bloqueFantasma(spec,opts)` → nodo `.bloque` (Lego,
+  con estuds), `dataset.texto/tipo`, color, `opts.onTap`. `spec = {tipo:
+  "letra"|"silaba"|"palabra", texto, color?, e?}`.
+- `descomponer(item,gran)` → specs por `"letra"|"silaba"|"palabra"` (sílaba usa
+  `item.sil` curado si existe, si no `silabear()`).
+- `silabear(palabra)` → silabeador heurístico español **best-effort** (acentos
+  fuera, ñ dentro). **OJO**: los modos guiados NO lo usan (usan `sil` curado).
+- `colorBloque/encajar/normalizar`. `esPalabra(w)` → consulta `LV.DIC` (Set del
+  diccionario; si aún no cargó, `false`). `invLetras/invSilabas/invPalabras` →
+  inventarios de piezas para la paleta del taller.
+
 **`modos.js`** (IIFE; toma helpers de `LV`):
-- `MODOS` (lista de los 13 modos; cada `card` lleva `data-modo`), `INICIAR`
+- `MODOS` (lista de los 16 modos; cada `card` lleva `data-modo`), `INICIAR`
   (mapa id→`iniciar*`), `abrirModo()`.
 - Pantallas: `pantallaIntro/Home/Perfil` + una `iniciar*`/`nueva*` por modo.
 - **ENTRADA** — **clave**: `manejarTecla(k)` es el router central por
@@ -102,12 +126,13 @@ profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
   físico y cada botón/tecla táctil del núcleo). Para añadir teclas, edita ahí.
 - **ARRANQUE** — `pintarHud()` → `LV.registrarSW()` → `pantallaIntro()`.
 
-### Los 13 modos (`S.pantalla`)
+### Los 16 modos (`S.pantalla`)
 **Pulsar (sin teclear):** `explora` · `toca` (toca dibujo → palabra) ·
 `empieza` (¿cuál empieza por…?) · `caza` (toca la letra pedida) ·
 `parejas` (memory letra↔dibujo).
 **Escribir/leer:** `galeria` · `busca` · `silabas` · `palabras` ·
 `falta` · `dictado` · `frases` · `cuentos`.
+**Bloques (usan el motor `bloques.js`):** `taller` · `construir` · `tren`.
 
 - Los juegos de **pulsar** usan `pintarControles("none")` (sin teclado; tienen
   sus propios objetivos grandes tocables). Aun así aceptan teclado físico
@@ -118,6 +143,17 @@ profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
   Cada cuento = `{ titulo, e, paginas:[{t, e}] }` con frases CORTAS. El texto
   mostrado puede llevar tildes; `normaliza()` las pasa a letras base (conserva
   la `ñ`). Añadir cuentos = entradas en `CUENTOS` (en `data.js`).
+- **`taller`** (🧱 libre, MÁXIMA libertad): paleta con pestañas (Sílabas/Letras/
+  Palabras); toca piezas (o teclea letras) y se acumulan en el **muro** (`S.taller
+  = {piezas, cat, ultima}`). Si la concatenación es palabra de verdad (`esPalabra`)
+  → ✨ celebra + lee + ⭐; si no, se lee igual (inventada). Hitos de altura cada
+  10 piezas. Sin `S.celebrando` (flujo libre). Acciones: Enter=leer, Backspace=
+  quitar, Delete=vaciar (botones de la barra `taller`).
+- **`construir`** (🏗️ torre) y **`tren`** (🚂 horizontal): guiados con palabra
+  objetivo de `BLOQUES_PALABRAS`. Comparten `nuevaObra/pintarObraGuiada/
+  colocarSilaba/completarObra` y ramifican por `S.pantalla`. Tap en la pieza
+  correcta o teclear sus letras (`teclearLetraBloque`) la **encaja** en orden;
+  error = sonidito + pista a los 2 intentos. Distractores en bandeja = `S.nivel`.
 
 ### Ajustes (en el menú, tecla o tocar el badge)
 `P` perfil (quién juega) · `V` voz on/off · `F` nombre/sonido · `L` abc/ABC ·
@@ -127,11 +163,13 @@ pantalla (Auto/Siempre/Nunca).
 ## 5. Cómo probar
 
 No hay navegador en el entorno, pero hay un **test de humo con jsdom** que
-carga los 3 scripts y simula teclado físico **y** toques en los 13 modos
-(incluidos los 4 juegos de pulsar), más perfiles y la separación PC/tablet.
+carga los scripts (incl. `bloques.js` y `diccionario.js`) y simula teclado
+físico **y** toques en los 16 modos (incluidos los 3 de bloques), más perfiles
+y la separación PC/tablet. También verifica el diccionario (`LV.DIC`,
+`esPalabra`) y la integridad de las sílabas curadas (`sil.join("")===w`).
 
 ```bash
-node --check data.js && node --check core.js && node --check modos.js  # sintaxis
+node --check data.js && node --check core.js && node --check bloques.js && node --check modos.js  # sintaxis
 
 # instalar jsdom (la red a npm SÍ funciona; vercel.com NO, ver §6)
 npm install jsdom --no-save --prefix /tmp/jsdomtest
@@ -189,11 +227,21 @@ seleccionan por `data-modo`).
   conserva la `ñ`). Para añadir un modo nuevo donde se teclee, normaliza igual.
 - **Mantener clásico:** nada de `import`/`export`, `fetch` ni dependencias en
   runtime. Comparten el objeto global `LV`; **respeta el orden de carga**
-  (`data.js` → `core.js` → `modos.js`). Debe seguir funcionando con doble clic
-  en `index.html` (por eso el SW solo se registra bajo http/https).
+  (`data.js` → `core.js` → `bloques.js` → `modos.js`; `diccionario.js` defer).
+  Debe seguir funcionando con doble clic en `index.html` (por eso el SW solo se
+  registra bajo http/https).
+- **Bloques:** el motor (`bloques.js`) NO conoce objetivos/victorias (solo
+  piezas + `esPalabra`); la lógica de cada juego vive en `modos.js`. El silabeo
+  de los modos guiados usa el `sil` **curado** de `BLOQUES_PALABRAS`, nunca
+  `silabear()` (heurístico best-effort, solo para reutilización futura).
+- **Diccionario:** `diccionario.js` está **autogenerado** (no editar a mano);
+  regenerar con `node tools/gen-diccionario.js` (instala antes
+  `an-array-of-spanish-words`, MIT). Es grande (~1,2 MB) y se carga con `defer`;
+  `esPalabra()` tolera que `LV.DIC` aún no esté. Si lo regeneras, **sube `CACHE`**.
 - **PWA:** si añades/renombras archivos del runtime, **actualízalos en
   `sw.js` (`ASSETS`) y sube `CACHE`** (p. ej. `v1`→`v2`) para forzar la
-  actualización offline. Los iconos se regeneran con `node tools/gen-icons.js`.
+  actualización offline. (Ya está en `v2`.) Los iconos se regeneran con
+  `node tools/gen-icons.js`.
 - **Perfiles:** no escribas en `localStorage` a mano; cambia `S.*` y llama a
   `LV.persistir()` (vuelca al perfil activo). El progreso es **por niño**.
 - **Tamaños:** usa `personaje(letra, rem, ...)`; el `rem` se limita con vmin
@@ -210,6 +258,10 @@ seleccionan por `data-modo`).
 ## 8. Roadmap / próximas ideas (acordadas con el usuario)
 
 ### Hecho recientemente
+- **Sistema de bloques reutilizable** (`bloques.js`) + 3 modos: **🧱 Taller
+  libre** (máxima libertad; reconoce palabras reales con diccionario de +364k),
+  **🏗️ Construir palabras** (torre) y **🚂 Tren de palabras** (horizontal).
+  Diccionario autogenerado (`tools/gen-diccionario.js` → `diccionario.js`).
 - **Refactor en `data.js` / `core.js` / `modos.js`** (sigue siendo doble-clic).
 - **4 juegos de pulsar** (lo que más engancha): `toca`, `empieza`, `caza`,
   `parejas`. El niño se cansa de teclear muchas letras seguidas.
