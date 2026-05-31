@@ -24,10 +24,12 @@ El usuario es un peque con **altas capacidades** que está aprendiendo a leer
 ## 2. Estado actual (live)
 
 - **Producción:** https://android-coral-ten.vercel.app (rama `main`).
-- Versión con **16 modos** (5 de **pulsar** + 8 de **escribir/leer** + 3 de
-  **bloques**), **3 niveles**, teclado físico + táctil, voz por nombre/sonido,
-  colección de 27 letras, **Cuentos**, **sistema de bloques** (🧱 Taller libre
-  con diccionario de +364k palabras, 🏗️ Construir y 🚂 Tren), **perfiles por
+- Versión con **17 modos** (4 de **pulsar** + 6 de **letras/escribir** + 2 de
+  **vocabulario** + 2 de **leer** + 3 de **bloques**), menú **agrupado por
+  secciones** (categorías), **3 niveles**, teclado físico + táctil, voz por
+  nombre/sonido, colección de 27 letras, **vocabulario sin emoji** (banco curado
+  `VOCAB`, validado contra el diccionario de +364k), **Cuentos**, **sistema de
+  bloques** (🧱 Taller libre, 🏗️ Construir y 🚂 Tren), **perfiles por
   niño** (con copia exportable) y **PWA** instalable/offline.
 
 ## 3. Stack y archivos
@@ -45,12 +47,12 @@ uno escribe/lee en `LV`.
 ```
 index.html        #app (juego), #controles (teclado táctil), #fx (confeti) + metas/manifest PWA
 style.css         Apariencia, animaciones, layout responsive, teclado en pantalla, juegos de pulsar y BLOQUES
-data.js           DATOS: LV.INFO, LV.PALABRAS, LV.BLOQUES_PALABRAS, LV.FRASES, LV.CUENTOS, layouts, niveles…
+data.js           DATOS: LV.INFO, LV.PALABRAS, LV.VOCAB, LV.BLOQUES_PALABRAS, LV.FRASES, LV.CUENTOS, layouts, niveles…
 core.js           MOTOR: perfiles+persistencia, audio, DOM/personajes, efectos, HUD, controles,
                   detección PC/tablet, registro del SW. Expone helpers en LV.
 bloques.js        SISTEMA DE BLOQUES (reutilizable): crearBloque/bloqueFantasma, descomponer, silabear
                   (best-effort), colorBloque, encajar, normalizar, esPalabra (LV.DIC), inventarios de piezas.
-modos.js          MODOS: menú, pantalla de perfiles y los 16 juegos + manejarTecla() (entrada única).
+modos.js          MODOS: menú (por secciones/CATS), pantalla de perfiles y los 17 juegos + manejarTecla() (entrada única).
 diccionario.js    AUTOGENERADO: +364k palabras del español (front-coding) → LV.DIC (Set). Carga con defer.
 manifest.webmanifest  Manifiesto PWA (icono, display fullscreen, theme).
 sw.js             Service worker: cachea la app shell para offline (sube CACHE al cambiar archivos).
@@ -79,6 +81,8 @@ Todo comparte el objeto global **`LV`**. Orden de carga obligatorio:
 
 **`data.js`** — solo datos en `LV.*`: `INFO` (cada letra: `n` nombre, `p`
 profesión, `e` emoji, `s` sonido), `PALABRAS` (`w/e/d` dificultad 0/1/2),
+`VOCAB` (`w/d`: vocabulario SIN emoji y sin tildes para los modos avanzados;
+cada `w` debe existir en `LV.DIC`, 2-10 letras — lo verifica `smoke.js`),
 `BLOQUES_PALABRAS` (`w/e/sil/d`: palabras con sílabas CURADAS y sin tildes para
 los modos Construir/Tren; cada `sil.join("")===w`), `FRASES`, `CUENTOS` (título
 + páginas), `CONS_SIL`, `TRABADAS`, `LAYOUT_QWERTY`/`LAYOUT_ABC`, `NIVELES`,
@@ -118,26 +122,39 @@ victorias; solo piezas y reconocimiento de palabras:
   inventarios de piezas para la paleta del taller.
 
 **`modos.js`** (IIFE; toma helpers de `LV`):
-- `MODOS` (lista de los 16 modos; cada `card` lleva `data-modo`), `INICIAR`
-  (mapa id→`iniciar*`), `abrirModo()`.
+- `MODOS` (lista de los 17 modos; cada uno con `id`, `cat`, `icono`, `nombre`,
+  `voz`; cada `card` lleva `data-modo`), `CATS` (orden y título de las secciones
+  del menú), `INICIAR` (mapa id→`iniciar*`), `abrirModo()`.
 - Pantallas: `pantallaIntro/Home/Perfil` + una `iniciar*`/`nueva*` por modo.
+  `pantallaHome` agrupa las tarjetas por `cat` bajo cada título de `CATS`,
+  conservando el índice GLOBAL en `MODOS` (selMenu, números 1-9, navegación).
 - **ENTRADA** — **clave**: `manejarTecla(k)` es el router central por
   `S.pantalla`; se expone como `LV.manejarTecla` (lo invocan el `keydown`
   físico y cada botón/tecla táctil del núcleo). Para añadir teclas, edita ahí.
 - **ARRANQUE** — `pintarHud()` → `LV.registrarSW()` → `pantallaIntro()`.
 
-### Los 16 modos (`S.pantalla`)
-**Pulsar (sin teclear):** `explora` · `toca` (toca dibujo → palabra) ·
-`empieza` (¿cuál empieza por…?) · `caza` (toca la letra pedida) ·
-`parejas` (memory letra↔dibujo).
-**Escribir/leer:** `galeria` · `busca` · `silabas` · `palabras` ·
-`falta` · `dictado` · `frases` · `cuentos`.
-**Bloques (usan el motor `bloques.js`):** `taller` · `construir` · `tren`.
+### Los 17 modos (`S.pantalla`), por categoría (`cat`)
+**Toca y juega (`toca`, sin teclear):** `explora` · `toca` (toca dibujo →
+palabra) · `caza` (toca la letra pedida) · `parejas` (memory letra↔dibujo).
+**Conoce las letras (`letras`):** `galeria` · `busca`.
+**Sílabas y palabras (`escribe`):** `silabas` · `palabras` · `falta` · `dictado`.
+**Vocabulario nuevo (`vocab`, SIN emoji, fuente `VOCAB`):** `lee` (lectura
+rápida: Espacio/"Siguiente ▶", no se teclea) · `vocab` (lee y TECLEA la palabra).
+**Lee historias (`lee`):** `frases` · `cuentos`.
+**Construye con bloques (`bloques`, motor `bloques.js`):** `taller` · `construir`
+· `tren`.
 
 - Los juegos de **pulsar** usan `pintarControles("none")` (sin teclado; tienen
   sus propios objetivos grandes tocables). Aun así aceptan teclado físico
-  donde tiene sentido (p. ej. `caza` y `empieza` por la letra; `toca` con
-  Espacio para barajar).
+  donde tiene sentido (p. ej. `caza` por la letra; `toca` con Espacio para
+  barajar).
+- **`palabras`/`dictado`/`falta`** usan `poolEscritura()` = `PALABRAS` (con
+  emoji) **+** `VOCAB` (sin emoji), filtrado por nivel: al subir la dificultad
+  entran palabras nuevas/largas. Quien pinte el dibujo debe tolerar `item.e`
+  ausente (ya lo hacen: `pintarEscritura` y `nuevaFalta` con guardas). `toca`
+  sigue usando `poolPalabras()` (solo emoji).
+- **`lee`/`vocab`** usan `poolVocab()` (solo `VOCAB`); `vocab` reutiliza
+  `pintarEscritura/escribirLetra/completarEscritura` (con `dibujo=null`).
 - **`frases`** = lectura guiada (Espacio/"Siguiente ▶", no se teclea).
 - **`cuentos`** = lectura ACTIVA: el niño **teclea cada palabra entera**.
   Cada cuento = `{ titulo, e, paginas:[{t, e}] }` con frases CORTAS. El texto
@@ -164,7 +181,8 @@ pantalla (Auto/Siempre/Nunca).
 
 No hay navegador en el entorno, pero hay un **test de humo con jsdom** que
 carga los scripts (incl. `bloques.js` y `diccionario.js`) y simula teclado
-físico **y** toques en los 16 modos (incluidos los 3 de bloques), más perfiles
+físico **y** toques en los 17 modos (incluidos los 2 de vocabulario y los 3 de
+bloques), más perfiles
 y la separación PC/tablet. También verifica el diccionario (`LV.DIC`,
 `esPalabra`) y la integridad de las sílabas curadas (`sil.join("")===w`).
 
@@ -247,9 +265,11 @@ seleccionan por `data-modo`).
 - **Tamaños:** usa `personaje(letra, rem, ...)`; el `rem` se limita con vmin
   para que quepa en tablet/móvil (`tam()`).
 - **Añadir contenido** = editar las tablas de **`data.js`** (`INFO`, `PALABRAS`,
-  `FRASES`, `CUENTOS`, `CONS_SIL`, `TRABADAS`). Añadir un **modo** = entrada en
-  `MODOS` + función `iniciar*` (en `modos.js`) + `INICIAR[id]` + rama en
-  `manejarTecla` + (si teclea) `pintarControles` + **recorrido en `smoke.js`**.
+  `VOCAB`, `FRASES`, `CUENTOS`, `CONS_SIL`, `TRABADAS`). Añadir un **modo** =
+  entrada en `MODOS` (con su `cat`, que debe existir en `CATS`) + función
+  `iniciar*` (en `modos.js`) + `INICIAR[id]` + rama en `manejarTecla` + (si
+  teclea) `pintarControles` + **recorrido en `smoke.js`** (y la cuenta de
+  tarjetas). Palabras de `VOCAB`: sin tildes, 2-10 letras y en `LV.DIC`.
 - **Secretos:** nunca commitear tokens/keys. (El usuario compartió un token de
   Vercel en el chat que debe **revocar**; no se usó porque la red lo bloquea.)
 - **No** incluir identificadores de modelo ni metadatos de la sesión en
@@ -263,8 +283,13 @@ seleccionan por `data-modo`).
   **🏗️ Construir palabras** (torre) y **🚂 Tren de palabras** (horizontal).
   Diccionario autogenerado (`tools/gen-diccionario.js` → `diccionario.js`).
 - **Refactor en `data.js` / `core.js` / `modos.js`** (sigue siendo doble-clic).
-- **4 juegos de pulsar** (lo que más engancha): `toca`, `empieza`, `caza`,
-  `parejas`. El niño se cansa de teclear muchas letras seguidas.
+- **Juegos de pulsar** (lo que más engancha): `toca`, `caza`, `parejas`. El
+  niño se cansa de teclear muchas letras seguidas. (El antiguo `empieza` se
+  retiró: con pocos emojis no se distinguía qué dibujo era cada palabra.)
+- **Vocabulario sin emoji** (`VOCAB`): banco curado por nivel, validado contra
+  el diccionario. Modos `lee` (lectura rápida) y `vocab` (lee y teclea); además
+  `palabras`/`dictado`/`falta` mezclan ese vocabulario al subir de dificultad.
+- **Menú por secciones** (categorías con título) para navegar mejor los modos.
 - **Perfiles por niño** con exportar/importar copia (botones 💾/📂 en Perfil).
 - **PWA real** (manifest + `sw.js` offline + icono propio).
 - **Separación PC/tablet** del teclado en pantalla (`kbModo` auto/si/no) y

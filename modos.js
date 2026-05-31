@@ -14,7 +14,7 @@
   var S = LV.S, INFO = LV.INFO, COLOR = LV.COLOR, ABECEDARIO = LV.ABECEDARIO,
       ORDEN_LETRAS = LV.ORDEN_LETRAS, VOCALES = LV.VOCALES, CONS_SIL = LV.CONS_SIL,
       TRABADAS = LV.TRABADAS, NIVELES = LV.NIVELES, PALABRAS = LV.PALABRAS,
-      FRASES = LV.FRASES, CUENTOS = LV.CUENTOS, AVATARES = LV.AVATARES;
+      VOCAB = LV.VOCAB, FRASES = LV.FRASES, CUENTOS = LV.CUENTOS, AVATARES = LV.AVATARES;
   var app = LV.app, fx = LV.fx;
   var el = LV.el, limpiar = LV.limpiar, mostrar = LV.mostrar, azar = LV.azar, barajar = LV.barajar,
       tap = LV.tap, personaje = LV.personaje, ranura = LV.ranura, revelar = LV.revelar, animar = LV.animar;
@@ -25,26 +25,38 @@
   var persistir = LV.persistir, ctx = LV.ctx, PALETA = LV.PALETA;
 
   /* ------------------------------------------------------------------
-     MENÚ: lista de modos. Los juegos de PULSAR (sin teclear) van primero
-     porque son los que más enganchan. card.dataset.modo identifica cada uno.
+     MENÚ: lista de modos. Van ordenados por DIFICULTAD/categoría y el menú
+     los agrupa en SECCIONES (ver CATS y pantallaHome). cat = categoría a la
+     que pertenece cada modo. card.dataset.modo identifica cada uno.
      ------------------------------------------------------------------ */
   var MODOS = [
-    { id:"explora",  icono:"🅰️",  nombre:"Explorar",          voz:"Explorar. Pulsa cualquier letra y mira lo que pasa." },
-    { id:"toca",     icono:"🖐️",  nombre:"Toca y descubre",    voz:"Toca y descubre. Toca un dibujo y aparece su palabra." },
-    { id:"empieza",  icono:"🔤",  nombre:"¿Empieza por…?",     voz:"¿Cuál empieza por la letra? Toca el dibujo correcto." },
-    { id:"caza",     icono:"⚡",   nombre:"Caza la letra",      voz:"Caza la letra. Toca la letra que te pido, rápido." },
-    { id:"parejas",  icono:"🃏",  nombre:"Parejas",            voz:"Parejas. Encuentra la letra y su dibujo." },
-    { id:"galeria",  icono:"📚",  nombre:"Conoce las letras",  voz:"Conoce las letras. Usa las flechas para verlas todas." },
-    { id:"busca",    icono:"🔎",  nombre:"Encuentra la letra", voz:"Encuentra la letra que aparece." },
-    { id:"silabas",  icono:"🧩",  nombre:"Sílabas",            voz:"Sílabas. Lee y escribe la sílaba." },
-    { id:"palabras", icono:"📖",  nombre:"Palabras",           voz:"Palabras. Escribe la palabra." },
-    { id:"falta",    icono:"🕵️",  nombre:"Letra que falta",    voz:"Letra que falta. ¿Qué letra falta en la palabra?" },
-    { id:"dictado",  icono:"👂",  nombre:"Escucha y escribe",  voz:"Escucha y escribe. Escribe la palabra que oigas." },
-    { id:"frases",   icono:"💬",  nombre:"Frases",             voz:"Frases. Lee una frase, palabra a palabra." },
-    { id:"cuentos",  icono:"📕",  nombre:"Cuentos",            voz:"Cuentos. Lee un cuento entero, palabra a palabra." },
-    { id:"taller",   icono:"🧱",  nombre:"Taller de bloques",  voz:"Taller de bloques. Junta letras y sílabas como quieras y crea palabras. ¡Lo que tú quieras!" },
-    { id:"construir",icono:"🏗️",  nombre:"Construir palabras",  voz:"Construir palabras. Toca las sílabas en orden para levantar la torre." },
-    { id:"tren",     icono:"🚂",  nombre:"Tren de palabras",   voz:"Tren de palabras. Engancha los vagones en orden y el tren arrancará." }
+    { id:"explora",  cat:"toca",   icono:"🅰️",  nombre:"Explorar",          voz:"Explorar. Pulsa cualquier letra y mira lo que pasa." },
+    { id:"toca",     cat:"toca",   icono:"🖐️",  nombre:"Toca y descubre",    voz:"Toca y descubre. Toca un dibujo y aparece su palabra." },
+    { id:"caza",     cat:"toca",   icono:"⚡",   nombre:"Caza la letra",      voz:"Caza la letra. Toca la letra que te pido, rápido." },
+    { id:"parejas",  cat:"toca",   icono:"🃏",  nombre:"Parejas",            voz:"Parejas. Encuentra la letra y su dibujo." },
+    { id:"galeria",  cat:"letras", icono:"📚",  nombre:"Conoce las letras",  voz:"Conoce las letras. Usa las flechas para verlas todas." },
+    { id:"busca",    cat:"letras", icono:"🔎",  nombre:"Encuentra la letra", voz:"Encuentra la letra que aparece." },
+    { id:"silabas",  cat:"escribe",icono:"🧩",  nombre:"Sílabas",            voz:"Sílabas. Lee y escribe la sílaba." },
+    { id:"palabras", cat:"escribe",icono:"📖",  nombre:"Palabras",           voz:"Palabras. Escribe la palabra." },
+    { id:"falta",    cat:"escribe",icono:"🕵️",  nombre:"Letra que falta",    voz:"Letra que falta. ¿Qué letra falta en la palabra?" },
+    { id:"dictado",  cat:"escribe",icono:"👂",  nombre:"Escucha y escribe",  voz:"Escucha y escribe. Escribe la palabra que oigas." },
+    { id:"lee",      cat:"vocab",  icono:"👀",  nombre:"Lee palabras",       voz:"Lee palabras. Lee la palabra nueva y pulsa siguiente para otra." },
+    { id:"vocab",    cat:"vocab",  icono:"🔡",  nombre:"Palabras nuevas",    voz:"Palabras nuevas. Lee la palabra y escríbela tú." },
+    { id:"frases",   cat:"lee",    icono:"💬",  nombre:"Frases",             voz:"Frases. Lee una frase, palabra a palabra." },
+    { id:"cuentos",  cat:"lee",    icono:"📕",  nombre:"Cuentos",            voz:"Cuentos. Lee un cuento entero, palabra a palabra." },
+    { id:"taller",   cat:"bloques",icono:"🧱",  nombre:"Taller de bloques",  voz:"Taller de bloques. Junta letras y sílabas como quieras y crea palabras. ¡Lo que tú quieras!" },
+    { id:"construir",cat:"bloques",icono:"🏗️",  nombre:"Construir palabras",  voz:"Construir palabras. Toca las sílabas en orden para levantar la torre." },
+    { id:"tren",     cat:"bloques",icono:"🚂",  nombre:"Tren de palabras",   voz:"Tren de palabras. Engancha los vagones en orden y el tren arrancará." }
+  ];
+
+  /* Categorías del menú: orden y título de cada sección. */
+  var CATS = [
+    { id:"toca",    titulo:"👆 Toca y juega" },
+    { id:"letras",  titulo:"🔤 Conoce las letras" },
+    { id:"escribe", titulo:"🧩 Sílabas y palabras" },
+    { id:"vocab",   titulo:"🆕 Vocabulario nuevo" },
+    { id:"lee",     titulo:"📖 Lee historias" },
+    { id:"bloques", titulo:"🧱 Construye con bloques" }
   ];
 
   var INICIAR = {}; // id -> función de arranque (se rellena más abajo)
@@ -79,17 +91,25 @@
     S.pantalla = "home"; S.celebrando = false; hudVisible(false); pintarControles("none"); limpiar(app);
     app.appendChild(el("h1", "titulo", "¿A qué jugamos?"));
 
-    var cont = el("div", "cards");
-    MODOS.forEach(function (m, i) {
-      var card = el("div", "card" + (i === S.selMenu ? " sel" : ""));
-      card.dataset.modo = m.id;
-      if (i < 9) card.appendChild(el("div", "num", String(i + 1)));
-      card.appendChild(el("div", "icono", m.icono));
-      card.appendChild(el("div", "nombre", m.nombre));
-      tap(card, (function (id, ix) { return function () { S.selMenu = ix; abrirModo(id); }; })(m.id, i));
-      cont.appendChild(card);
+    // Tarjetas agrupadas por categoría (CATS), pero conservando el índice
+    // GLOBAL en MODOS para selMenu, los números 1-9 y la navegación lineal.
+    var menu = el("div", "menu");
+    CATS.forEach(function (cat) {
+      menu.appendChild(el("h2", "seccion-titulo", cat.titulo));
+      var cont = el("div", "cards");
+      MODOS.forEach(function (m, i) {
+        if (m.cat !== cat.id) return;
+        var card = el("div", "card" + (i === S.selMenu ? " sel" : ""));
+        card.dataset.modo = m.id;
+        if (i < 9) card.appendChild(el("div", "num", String(i + 1)));
+        card.appendChild(el("div", "icono", m.icono));
+        card.appendChild(el("div", "nombre", m.nombre));
+        tap(card, (function (id, ix) { return function () { S.selMenu = ix; abrirModo(id); }; })(m.id, i));
+        cont.appendChild(card);
+      });
+      menu.appendChild(cont);
     });
-    app.appendChild(cont);
+    app.appendChild(menu);
 
     function badge(txt, key, cls) { var b = el("div", "badge" + (cls ? " " + cls : ""), txt); if (key) tap(b, function () { manejarTecla(key); }); return b; }
     var p = LV.perfilActivo();
@@ -240,6 +260,11 @@
      letras-personaje. Sin teclear. Al tocarlos todos, ⭐ y tablero nuevo.
      ------------------------------------------------------------------ */
   function poolPalabras() { return PALABRAS.filter(function (p) { return p.d <= S.nivel; }); }
+  // Pool para los modos de ESCRIBIR/leer palabras: combina las palabras con
+  // emoji (PALABRAS) y el vocabulario sin emoji (VOCAB), filtrado por nivel.
+  // Así, al subir la dificultad, entran palabras nuevas y más largas. Los
+  // items de VOCAB no traen `e`: quien lo use debe tolerar la falta de dibujo.
+  function poolEscritura() { return poolPalabras().concat(poolVocab()); }
 
   function iniciarToca() { S.pantalla = "toca"; hudVisible(true); pintarControles("none"); nuevaToca(); }
   function nuevaToca() {
@@ -280,48 +305,53 @@
   }
 
   /* ------------------------------------------------------------------
-     MODO 3 (NUEVO): ¿CUÁL EMPIEZA POR…?
-     Una letra grande + varios dibujos; toca el que empieza por esa letra.
+     VOCABULARIO (modos avanzados, SIN emoji): aprenden palabras de verdad.
+     poolVocab() filtra LV.VOCAB por nivel (igual que poolPalabras).
      ------------------------------------------------------------------ */
-  function iniciarEmpieza() { S.pantalla = "empieza"; S.grupo = 5; hudVisible(true); pintarControles("none"); S.empieza = { objetivo: null, intentos: 0 }; nuevaEmpieza(); }
-  function nuevaEmpieza() {
-    S.celebrando = false; limpiar(app);
-    var conEmoji = function (L) { return INFO[L] && INFO[L].e; };
-    var pool = ORDEN_LETRAS.slice(0, S.grupo).filter(conEmoji);
-    if (!pool.length) pool = ABECEDARIO.filter(conEmoji);
-    var L = azar(pool);
-    var nOpc = S.nivel >= 2 ? 4 : 3;
-    var otras = barajar(ABECEDARIO.filter(function (x) { return x !== L && conEmoji(x); })).slice(0, nOpc - 1);
-    var opciones = barajar(otras.concat([L]));
-    S.empieza = { objetivo: L, intentos: 0 };
-    app.appendChild(el("p", "prompt", "¿Cuál empieza por…"));
-    var stage = el("div", "stage"); stage.id = "stage";
-    var fila = el("div", "fila-letras"); fila.appendChild(personaje(L, 8, false)); stage.appendChild(fila);
-    app.appendChild(stage);
-    var grid = el("div", "grid-opciones");
-    opciones.forEach(function (op) {
-      var tile = el("button", "emoji-tile"); tile.dataset.letra = op;
-      tile.appendChild(el("span", "emoji-grande", INFO[op].e));
-      tap(tile, (function (op, tile) { return function () { elegirEmpieza(op, tile); }; })(op, tile));
-      grid.appendChild(tile);
-    });
-    app.appendChild(grid);
-    hablar("¿Cuál empieza por la " + INFO[L].n + "?");
+  function poolVocab() {
+    var p = VOCAB.filter(function (v) { return v.d <= S.nivel; });
+    return p.length ? p : VOCAB;
   }
-  function elegirEmpieza(op, tile) {
-    if (S.celebrando) return;
-    var L = S.empieza.objetivo;
-    if (op === L) {
-      S.celebrando = true; registrar(L, true);
-      animar(tile, "happy", 700); confeti(tile); sfxBien(); sumarEstrella(); descubrir(L);
-      tile.classList.add("acierto");
-      hablar("¡Sí! " + INFO[L].p + " empieza por " + INFO[L].n);
-      if (S.estrellas % 3 === 0 && S.grupo < ORDEN_LETRAS.length) S.grupo++;
-      setTimeout(function () { if (S.pantalla === "empieza") nuevaEmpieza(); }, 1700);
+
+  /* LEE PALABRAS: lectura rápida, sin teclear. Muestra la palabra, la dice y
+     con Espacio/"Siguiente ▶" pasa a otra (mucho vocabulario, poco esfuerzo). */
+  function iniciarLee() { S.pantalla = "lee"; hudVisible(true); S.lee = { prev: null, racha: 0 }; pintarControles("frases"); nuevaLee(); }
+  function nuevaLee() {
+    S.celebrando = false;
+    var pool = poolVocab(), prev = S.lee && S.lee.prev, w;
+    do { w = azar(pool).w; } while (pool.length > 1 && w === prev);
+    S.lee.w = w; S.lee.leida = false; S.lee.prev = w;
+    limpiar(app);
+    app.appendChild(el("p", "prompt", "Lee la palabra. Pulsa Siguiente ▶ para otra"));
+    var stage = el("div", "stage"); stage.id = "stage";
+    var fila = el("div", "fila-letras");
+    w.split("").forEach(function (L) { fila.appendChild(personaje(L, 7, false)); });
+    stage.appendChild(fila); app.appendChild(stage);
+    hablar(w);
+  }
+  function avanzarLee() {
+    var L = S.lee;
+    if (!L.leida) {
+      L.leida = true; sfxTick(); hablar(L.w); descubrir(L.w.charAt(0));
+      var chars = app.querySelectorAll("#stage .fila-letras .letter-char");
+      for (var i = 0; i < chars.length; i++) animar(chars[i], "happy", 600);
+      L.racha = (L.racha || 0) + 1;
+      if (L.racha % 5 === 0) { sfxBien(); confeti(document.getElementById("stage")); sumarEstrella(); cartel("⭐ ¡Cuántas palabras!"); }
     } else {
-      S.empieza.intentos++; registrar(L, false); sfxUps(); animar(tile, "oops", 400);
-      if (S.empieza.intentos >= 2) hablar("Escucha: " + INFO[L].p + " empieza por " + INFO[L].n);
+      nuevaLee();
     }
+  }
+
+  /* PALABRAS NUEVAS: lectura ACTIVA. Muestra la palabra y el niño la teclea
+     (sin dibujo). Reutiliza pintarEscritura/escribirLetra/completarEscritura. */
+  function iniciarVocab() { S.pantalla = "vocab"; hudVisible(true); S.esc = { prev: null }; pintarControles("teclado"); nuevaVocab(); }
+  function nuevaVocab() {
+    S.celebrando = false;
+    var pool = poolVocab(), prev = S.esc && S.esc.prev, w;
+    do { w = azar(pool).w; } while (pool.length > 1 && w === prev);
+    S.esc = { objetivo: w, escrito: 0, intentos: 0, oculto: false, prev: w };
+    pintarEscritura("Lee y escribe la palabra:", w, null, false);
+    hablar(w);
   }
 
   /* ------------------------------------------------------------------
@@ -525,7 +555,7 @@
   function iniciarPalabras() { S.pantalla = "palabras"; hudVisible(true); S.esc = { prev: null }; pintarControles("teclado"); nuevaPalabra(); }
   function nuevaPalabra() {
     S.celebrando = false;
-    var pool = poolPalabras(), prev = S.esc && S.esc.prev, item;
+    var pool = poolEscritura(), prev = S.esc && S.esc.prev, item;
     do { item = azar(pool); } while (pool.length > 1 && item.w === prev);
     S.esc = { objetivo: item.w, escrito: 0, intentos: 0, oculto: false, prev: item.w };
     pintarEscritura("Escribe la palabra:", item.w, item.e, false);
@@ -535,7 +565,7 @@
   function iniciarDictado() { S.pantalla = "dictado"; hudVisible(true); S.esc = { prev: null }; pintarControles("teclado"); nuevoDictado(); }
   function nuevoDictado() {
     S.celebrando = false;
-    var pool = poolPalabras(), prev = S.esc && S.esc.prev, item;
+    var pool = poolEscritura(), prev = S.esc && S.esc.prev, item;
     do { item = azar(pool); } while (pool.length > 1 && item.w === prev);
     var dibujo = (S.nivel >= 2) ? null : item.e;
     S.esc = { objetivo: item.w, escrito: 0, intentos: 0, oculto: true, prev: item.w };
@@ -562,7 +592,8 @@
     S.celebrando = true; sfxBien(); confeti(document.getElementById("stage")); sumarEstrella();
     hablar("¡" + S.esc.objetivo + "! ¡Muy bien!");
     var p = S.pantalla;
-    var next = p === "silabas" ? nuevaSilaba : (p === "dictado" ? nuevoDictado : nuevaPalabra);
+    var next = p === "silabas" ? nuevaSilaba
+      : (p === "dictado" ? nuevoDictado : (p === "vocab" ? nuevaVocab : nuevaPalabra));
     setTimeout(function () { if (S.pantalla === p) next(); }, 1600);
   }
 
@@ -572,7 +603,7 @@
   function iniciarFalta() { S.pantalla = "falta"; hudVisible(true); S.falta = { prev: null }; pintarControles("teclado"); nuevaFalta(); }
   function nuevaFalta() {
     S.celebrando = false;
-    var pool = poolPalabras(), prev = S.falta && S.falta.prev, item;
+    var pool = poolEscritura(), prev = S.falta && S.falta.prev, item;
     do { item = azar(pool); } while (pool.length > 1 && item.w === prev);
     var word = item.w, nB = Math.min(S.nivel >= 2 ? 2 : 1, word.length - 1), idxs = [];
     while (idxs.length < nB) { var r = (Math.random() * word.length) | 0; if (idxs.indexOf(r) < 0) idxs.push(r); }
@@ -581,7 +612,7 @@
     limpiar(app);
     app.appendChild(el("p", "prompt", "¿Qué letra falta?"));
     var stage = el("div", "stage"); stage.id = "stage";
-    var d = el("div", "dibujo", item.e); d.style.width = "100%"; stage.appendChild(d);
+    if (item.e) { var d = el("div", "dibujo", item.e); d.style.width = "100%"; stage.appendChild(d); }
     var fila = el("div", "fila-letras");
     word.split("").forEach(function (L, i) { fila.appendChild(idxs.indexOf(i) >= 0 ? ranura(L, 7) : personaje(L, 7, false)); });
     stage.appendChild(fila); app.appendChild(stage);
@@ -933,9 +964,10 @@
 
   /* Registrar todas las funciones de arranque */
   INICIAR = {
-    explora: iniciarExplora, toca: iniciarToca, empieza: iniciarEmpieza, caza: iniciarCaza,
+    explora: iniciarExplora, toca: iniciarToca, caza: iniciarCaza,
     parejas: iniciarParejas, galeria: iniciarGaleria, busca: iniciarBusca, silabas: iniciarSilabas,
-    palabras: iniciarPalabras, falta: iniciarFalta, dictado: iniciarDictado, frases: iniciarFrases,
+    palabras: iniciarPalabras, falta: iniciarFalta, dictado: iniciarDictado,
+    lee: iniciarLee, vocab: iniciarVocab, frases: iniciarFrases,
     cuentos: iniciarCuentos, taller: iniciarTaller, construir: iniciarConstruir, tren: iniciarTren
   };
 
@@ -958,14 +990,8 @@
     if (S.pantalla === "explora") { if (esLetra(k)) explicaExplora(k.toLowerCase()); return; }
 
     if (S.pantalla === "toca") { if (k === "Enter" || k === " ") nuevaToca(); return; }
-    if (S.pantalla === "empieza") {
-      if (S.celebrando) return;
-      if (k === "Enter" || k === " ") { hablar("¿Cuál empieza por la " + INFO[S.empieza.objetivo].n + "?"); return; }
-      if (esLetra(k)) {
-        var L = k.toLowerCase();
-        var tile = document.querySelector('.grid-opciones .emoji-tile[data-letra="' + L + '"]');
-        if (tile) elegirEmpieza(L, tile);
-      }
+    if (S.pantalla === "lee") {
+      if (k === " ") avanzarLee(); else if (k === "Enter") hablar(S.lee.w);
       return;
     }
     if (S.pantalla === "caza") {
@@ -989,7 +1015,7 @@
       if (esLetra(k)) { var Lb = k.toLowerCase(); if (Lb === S.busca.objetivo) aciertoBusca(); else falloBusca(Lb); }
       return;
     }
-    if (S.pantalla === "silabas" || S.pantalla === "palabras" || S.pantalla === "dictado") {
+    if (S.pantalla === "silabas" || S.pantalla === "palabras" || S.pantalla === "dictado" || S.pantalla === "vocab") {
       if (S.celebrando) return;
       if (k === "Enter" || k === " ") { hablar(S.pantalla === "dictado" ? ("Escucha. " + S.esc.objetivo) : S.esc.objetivo); return; }
       if (esLetra(k)) escribirLetra(k.toLowerCase());
