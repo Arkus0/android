@@ -129,7 +129,7 @@ export function createLinker(app) {
       ctx.stroke();
       ctx.fill();
       ctx.restore();
-      label(ctx, `${t.label} (off screen)`, ax, ay + (cy > ay ? -18 : 18), area);
+      label(ctx, `${t.label} (fuera de la vista)`, ax, ay + (cy > ay ? -18 : 18), area);
     }
     ctx.restore();
   }

@@ -26,6 +26,14 @@ ajustado; los datos españoles, el pipeline que los prepara y los textos son de 
   eólica y solar (Global Power Plant Database, foto de 2021).
 - **Maravillas**: los bienes Patrimonio de la Humanidad de la UNESCO y los parques nacionales.
 - **Mejoras**: autovías, carreteras principales, ferrocarril y aeropuertos (pasajeros de Eurostat/AENA).
+- **Vista de ciudad** (pulsa una ciudad → «Vista de ciudad»): sus ciudadanos (ocupaciones CNO, edades, estudios
+  y lugar de nacimiento del Censo anual), sus distritos (las ramas en las que está especializada: «Ciudad del
+  motor», «Ciudad turística», «Ciudad agrícola»…), economía, trabajo, recursos cercanos y comparación con otras.
+- **Consejeros** (botón 🏛️ de la barra superior): ocho paneles que explican los datos que hay detrás del mapa, con gráficas
+  enlazadas al mapa — Energía, Economía (PIB por ramas, especialización), Población (crecimiento, densidad, edad
+  e inmigración), Prosperidad (renta, pobreza, paro), Conocimiento (estudios, empleo científico), Territorio
+  (cobertura del suelo por provincia), Cultura (Patrimonio Mundial, parques nacionales, empleo cultural) y el
+  Explorador, que cruza cualquier columna de provincias, ciudades o los 8.131 municipios.
 - **Búsqueda** de ciudades, provincias y de los 8.131 municipios; enlaces que guardan la vista; imagen para compartir.
 
 ## Ejecutarlo
@@ -47,7 +55,7 @@ El pipeline está en `tools/espanaciv/` (Python 3.11+ con numpy, rasterio y affi
 pip install numpy rasterio affine
 python3 tools/espanaciv/fetch.py        # descarga las fuentes a ~/.cache/espanaciv (≈2,5 GB; caché + manifest)
 python3 tools/espanaciv/worldcover.py   # ESA WorldCover, leyendo solo las vistas reducidas de los COG
-python3 tools/espanaciv/build.py        # world → stats → cities → lenses → extras  ⇒  espanaciv/data/*.json
+python3 tools/espanaciv/build.py        # world → stats → cities → lenses → extras → cityview  ⇒  espanaciv/data/*.json
 ```
 
 | Paso | Qué hace |
@@ -57,6 +65,7 @@ python3 tools/espanaciv/build.py        # world → stats → cities → lenses 
 | `build_cities.py` | `cities.json`, `states.json` (provincias), `nation.json`; PIB estimado de las ciudades |
 | `build_lenses.py` | `lenses.json`: cada municipio reparte su población por su superficie dentro de cada hexágono |
 | `build_extras.py` | `resources.json`, `wonders.json`, `infrastructure.json`, energía por provincia y `sources.json` (la bibliografía del Almanaque) |
+| `build_cityview.py` | `citizens.json` (ocupaciones, edades, estudios y origen de cada ciudad), `districts.json` (especialización por rama → distritos e insignia) y `counties.json` (los 8.131 municipios para los consejeros) |
 
 Los ficheros de `espanaciv/data/` siguen los contratos de usaciv (`docs/DATA_CONTRACTS.md` en su código fuente),
 con algunos campos españoles de más (`renta_persona`, `pobreza`, `edad_media`, `nacidos_fuera`, `estudios_sup`,
@@ -68,7 +77,7 @@ con algunos campos españoles de más (`renta_persona`, `pobreza`, `edad_media`,
   contados donde viven.
 - **El PIB de las ciudades es una estimación (≈).** El INE no publica PIB municipal: se reparte el valor añadido
   de la provincia rama a rama según los ocupados de la ciudad. Infravalora los centros que atraen trabajadores.
-- **El paro es el del Censo** (registros administrativos), más bajo que el de la EPA.
+- **El paro es el del Censo** (registros administrativos): no coincide exactamente con el de la EPA.
 - **Las posiciones son esquemáticas.** Cada hexágono es ~133 km²; carreteras y vías son arte del mapa.
 - **Lo que falta, falta:** si no hay dato es `null`, nunca 0. El ADRH no publica los municipios más pequeños.
 - **Las centrales son una foto de 2021**: falta la ola solar posterior y no se dibuja el carbón (casi todo cerrado).

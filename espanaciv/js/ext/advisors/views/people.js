@@ -39,7 +39,7 @@ export function mount(ctx) {
   // --- growth ---------------------------------------------------------------------------------------------------
   const gBody = section(el, { title: "Quién crece y quién mengua", note: `Cambio de población ${yrs.join("–")} según el Padrón municipal, con los términos municipales de hoy. Ciudades de ${count3(METRO_MIN)}+ habitantes.` });
   const gHost = document.createElement("div");
-  segmented(gBody, { label: "Areas", value: gLevel, options: [{ value: "metros", label: "Ciudades" }, { value: "states", label: "Provincias" }], onChange: (v) => { gLevel = v; drawGrowth(); if (picker.value === "growth") picker.refresh(); } });
+  segmented(gBody, { label: "Zonas", value: gLevel, options: [{ value: "metros", label: "Ciudades" }, { value: "states", label: "Provincias" }], onChange: (v) => { gLevel = v; drawGrowth(); if (picker.value === "growth") picker.refresh(); } });
   gBody.appendChild(gHost);
   function drawGrowth() {
     gHost.innerHTML = "";

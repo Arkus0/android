@@ -56,7 +56,7 @@ export function createScatter(host, opts) {
     })).sort((a, b) => b.r - a.r);
     root._count = valid.length;
     cv.setAttribute("aria-label", o.ariaLabel || `Gráfica de dispersión de ${valid.length} puntos: ${o.y?.label || "y"} frente a ${o.x?.label || "x"}`);
-    hint.textContent = o.brush === false ? "" : `${valid.length.toLocaleString("en-US")} points · drag to select`;
+    hint.textContent = o.brush === false ? "" : `${valid.length.toLocaleString("es-ES")} puntos · arrastra para seleccionar`;
     draw();
   }
 

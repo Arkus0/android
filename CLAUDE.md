@@ -318,5 +318,8 @@ Proyecto **independiente** del juego de letras: la España real dibujada como ma
   `https://android-coral-ten.vercel.app/espanaciv/`.
 - **Datos**: `espanaciv/data/*.json` los genera el pipeline Python de `tools/espanaciv/` (`fetch.py` →
   `worldcover.py` → `build.py`; necesita numpy, rasterio y affine). No editar los JSON a mano.
+- **Extensiones** (`espanaciv/js/ext/`): `cityView/` (vista de ciudad), `advisors/` (los 8 consejeros: vistas en
+  `advisors/views/`, modelo de datos en `advisors/core/data.js`), `layers/` e `inset/` (Canarias). Se activan en
+  `js/ext/index.js` (`MODULES`). Los textos de la interfaz están en español; los números con coma decimal.
 - **No mezclar**: el `sw.js` del juego ignora las rutas `/espanaciv/` (no las cachea). El test de humo
   (`test/smoke.js`) es solo del juego.

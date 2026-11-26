@@ -9,32 +9,29 @@ import { section, segmented, selectBox, sourcesHtml, frameBtn } from "../core/vi
 import { rowsHighlight, extendData } from "../core/data.js";
 
 const DEFAULT_COLS = {
-  states: ["population", "growth", "gdp_pc", "median_income", "unemployment"],
-  metros: ["states", "population", "growth", "gdp_pc", "median_income"],
-  counties: ["state", "population", "density", "income", "poverty"],
+  states: ["population", "growth", "gdp_pc", "income", "unemployment"],
+  metros: ["states", "population", "growth", "gdp_pc", "income"],
+  counties: ["state_name", "population", "density", "income", "poverty"],
 };
 const DEFAULT_XY = {
-  states: { x: "median_income", y: "growth", s: "population", c: "unemployment" },
-  metros: { x: "gdp_pc", y: "growth", s: "population", c: "median_income" },
+  states: { x: "income", y: "growth", s: "population", c: "unemployment" },
+  metros: { x: "gdp_pc", y: "growth", s: "population", c: "income" },
   counties: { x: "income", y: "bachelors", s: "population", c: "density" },
 };
 // Table headers: short enough for a ~60 px column (they wrap to two lines; &shy; marks where a long word may break).
 const SHORT = {
-  population: "People", gdp_pc: "GDP per person", median_income: "Income", median_rent: "Rent", unemployment: "Unemploy&shy;ment",
-  affordability: "Home ÷ income", rent_burden: "Rent ÷ income", homeownership: "Home&shy;owners", land_km2: "Land area",
-  energy_mw: "Mapped power", foreign_born: "Born abroad", median_age: "Median age", uninsured: "Unin&shy;sured", broadband: "Broad&shy;band",
-  // county lenses, military, industry districts, citizens
-  faith_tradition: "Largest tradition", amenities: "Amen&shy;ities", mhlth: "Mental distress", loneliness: "Lone&shy;liness", disasters: "Disas&shy;ters",
-  veterans_pct: "Veterans share", armed_forces: "Armed forces", armed_forces_pct: "Armed forces share", mil_active: "Active duty",
-  mil_guard_reserve: "Guard & Reserve", mil_civilian: "DoD civilians", def_spending: "Defense $", def_per_resident: "Defense $ per resident",
-  def_pct_gdp: "Defense % of GDP", installations: "Instal&shy;lations", encampment: "Garrison", city_type: "City type", n_districts: "Districts (n)",
-  qcew_jobs: "Jobs (QCEW)", qcew_pay: "Pay (QCEW)", top_industry: "Top industry", top_lq: "Top LQ", cz_median_age: "Median age (1-yr)",
-  cz_degree: "Degree (1-yr)", cz_specialist: "Top citizen", cz_drove_alone: "Drive alone", cz_transit: "Transit", cz_home: "Work from home",
+  population: "Habi&shy;tantes", gdp_pc: "PIB por persona", income: "Renta", median_income: "Renta me&shy;diana", unemployment: "Paro",
+  poverty: "Pobre&shy;za", land_km2: "Super&shy;ficie", density: "Densi&shy;dad", growth: "Creci&shy;miento", state_name: "Provin&shy;cia",
+  energy_mw: "Potencia dibujada", foreign_born: "Nacidos fuera", median_age: "Edad media", bachelors: "Estudios sup.", elderly: "Mayores de 65",
+  employed: "Ocupa&shy;dos", solo: "Viven solos",
+  // distritos y ciudadanos
+  city_type: "Tipo de ciudad", n_districts: "Distritos (n)", top_industry: "Rama más especial.", top_lq: "Su LQ",
+  cz_degree: "Superiores", cz_specialist: "Ciudadano que destaca",
 };
-const OPS = { num: [">", "≥", "<", "≤", "="], text: ["=", "contains", "≠"] };
+const OPS = { num: [">", "≥", "<", "≤", "="], text: ["=", "contiene", "≠"] };
 
-// Remember the explorer's setup per viewer (a convenience; the page works without it).
-const STORE = "advisors.explorer.v1";
+// Recuerda la configuración del explorador en este navegador (comodidad; la página funciona sin ello).
+const STORE = "espanaciv.explorer.v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } };
 const save = (s) => { try { localStorage.setItem(STORE, JSON.stringify(s)); } catch { /* private mode */ } };
 
@@ -42,7 +39,7 @@ export async function mount(ctx) {
   const { app, data, el, link } = ctx;
   // Columns from the optional files (garrisons and defense $, industry districts, citizen mixes): loaded on demand,
   // only when the Explorer opens, and added to the levels once.
-  await extendData(data, ["military", "districts", "citizens"]);
+  await extendData(data, ["districts", "citizens"]);
   const avail = ["states", "metros", "counties"].filter((k) => data.levels[k]);
   const saved = load() || {};
   const st = {
@@ -57,12 +54,12 @@ export async function mount(ctx) {
   const L = () => data.levels[st.level];
 
   // --- controls -------------------------------------------------------------------------------------------------
-  const top = section(el, { title: "Explore the data", note: "Choose what to compare, filter it, sort the table, and plot any two columns. Hover a row or a point to see it on the map; drag across the chart to select a group." });
+  const top = section(el, { title: "Explora los datos", note: "Elige qué comparar, fíltralo, ordena la tabla y dibuja dos columnas cualesquiera. Pasa por una fila o un punto para verlo en el mapa; arrastra sobre la gráfica para seleccionar un grupo." });
   const lvRow = document.createElement("div");
   lvRow.className = "adv-row";
   top.appendChild(lvRow);
   segmented(lvRow, {
-    label: "Level", value: st.level,
+    label: "Nivel", value: st.level,
     options: avail.map((k) => ({ value: k, label: data.levels[k].label })),
     onChange: (v) => { st.level = v; st.filters = st.filters.filter((f) => L().field(f.key)); st.sel = null; persist(); rebuild(); },
   });
@@ -81,7 +78,7 @@ export async function mount(ctx) {
   top.appendChild(summary);
 
   // --- table ----------------------------------------------------------------------------------------------------
-  const tBody = section(el, { title: "Table" });
+  const tBody = section(el, { title: "Tabla" });
   const selRow = document.createElement("div");
   selRow.className = "adv-row";
   tBody.appendChild(selRow);
@@ -90,7 +87,7 @@ export async function mount(ctx) {
   let table = null;
 
   // --- chart ----------------------------------------------------------------------------------------------------
-  const cBody = section(el, { title: "Chart" });
+  const cBody = section(el, { title: "Gráfica" });
   const axes = document.createElement("div");
   axes.className = "adv-axes";
   cBody.appendChild(axes);
@@ -116,7 +113,7 @@ export async function mount(ctx) {
   // --- logic ----------------------------------------------------------------------------------------------------
   const fieldOpts = (withNone = false, numeric = true) => {
     const fs = L().fields.filter((f) => (numeric ? f.format !== "text" : f.key !== "name"));
-    return [...(withNone ? [{ value: "", label: "None" }] : []), ...fs.map((f) => ({ value: f.key, label: f.label, group: f.group }))];
+    return [...(withNone ? [{ value: "", label: "Ninguno" }] : []), ...fs.map((f) => ({ value: f.key, label: f.label, group: f.group }))];
   };
   const numeric = (f) => f && f.format !== "text";
   const val = (r, k) => r.v[k] ?? null;
@@ -139,7 +136,7 @@ export async function mount(ctx) {
         const s = String(v ?? "").toLowerCase(), t = String(f.value).toLowerCase();
         if (f.op === "=" && s !== t) return false;
         if (f.op === "≠" && s === t) return false;
-        if (f.op === "contains" && !s.includes(t)) return false;
+        if (f.op === "contiene" && !s.includes(t)) return false;
       }
     }
     return true;
@@ -154,14 +151,14 @@ export async function mount(ctx) {
       if (!groups.has(f.group)) groups.set(f.group, []);
       groups.get(f.group).push(f);
     }
-    colsBox.innerHTML = `<summary class="adv-mini">Columns (${on.size})</summary><div class="adv-cols-pop">${[...groups].map(([g, list]) => `<fieldset><legend>${esc(g)}</legend>${list.map((f) => `<label title="${esc(f.description)}"><input type="checkbox" value="${esc(f.key)}"${on.has(f.key) ? " checked" : ""}> ${esc(f.label)}</label>`).join("")}</fieldset>`).join("")}</div>`;
+    colsBox.innerHTML = `<summary class="adv-mini">Columnas (${on.size})</summary><div class="adv-cols-pop">${[...groups].map(([g, list]) => `<fieldset><legend>${esc(g)}</legend>${list.map((f) => `<label title="${esc(f.description)}"><input type="checkbox" value="${esc(f.key)}"${on.has(f.key) ? " checked" : ""}> ${esc(f.label)}</label>`).join("")}</fieldset>`).join("")}</div>`;
   }
   colsBox.addEventListener("change", (e) => {
     const k = e.target.value;
     const list = st.cols[st.level].filter((x) => x !== k);
     if (e.target.checked) list.push(k);
     st.cols = { ...st.cols, [st.level]: list };
-    colsBox.querySelector("summary").textContent = `Columns (${list.length})`;
+    colsBox.querySelector("summary").textContent = `Columnas (${list.length})`;
     persist();
     buildTable();
   });
@@ -169,21 +166,21 @@ export async function mount(ctx) {
   function renderFilterBuilder() {
     fRow.innerHTML = "";
     const fs = L().fields;
-    const fsel = selectBox(fRow, { label: "Filter", value: fs.find((f) => f.key === "population")?.key || fs[0].key, options: fs.map((f) => ({ value: f.key, label: f.label, group: f.group })) });
+    const fsel = selectBox(fRow, { label: "Filtro", value: fs.find((f) => f.key === "population")?.key || fs[0].key, options: fs.map((f) => ({ value: f.key, label: f.label, group: f.group })) });
     const ops = document.createElement("select");
-    ops.setAttribute("aria-label", "Comparison");
+    ops.setAttribute("aria-label", "Comparación");
     const valIn = document.createElement("input");
     valIn.type = "text";
     valIn.placeholder = "e.g. 1M, 25%, TX";
-    valIn.setAttribute("aria-label", "Value");
+    valIn.setAttribute("aria-label", "Valor");
     const add = document.createElement("button");
     add.type = "button";
     add.className = "adv-mini";
-    add.textContent = "Add";
+    add.textContent = "Añadir";
     const syncOps = () => {
       const f = L().field(fsel.value);
       ops.innerHTML = (numeric(f) ? OPS.num : OPS.text).map((o) => `<option>${esc(o)}</option>`).join("");
-      valIn.placeholder = numeric(f) ? (f.format === "pct" || f.format === "signed" ? "e.g. 25%" : f.format === "usd" || f.format === "money" ? "e.g. 80K" : "e.g. 1M") : st.level === "counties" ? "e.g. TX" : "text";
+      valIn.placeholder = numeric(f) ? (f.format === "pct" || f.format === "signed" ? "p. ej. 25%" : f.format === "usd" || f.format === "money" ? "p. ej. 20k" : "p. ej. 1M") : "texto";
     };
     fsel.select.addEventListener("change", syncOps);
     syncOps();
@@ -191,7 +188,7 @@ export async function mount(ctx) {
       const f = L().field(fsel.value);
       if (!f || !valIn.value.trim()) return;
       const v = numeric(f) ? parseNum(valIn.value, f.format) : valIn.value.trim();
-      if (v == null) { valIn.setCustomValidity("Not a number"); valIn.reportValidity(); return; }
+      if (v == null) { valIn.setCustomValidity("No es un número"); valIn.reportValidity(); return; }
       valIn.setCustomValidity("");
       st.filters.push({ key: f.key, op: ops.value, value: v });
       valIn.value = "";
@@ -203,7 +200,7 @@ export async function mount(ctx) {
     // quick presets
     const presets = document.createElement("span");
     presets.className = "adv-presets";
-    const P = st.level === "counties" ? [["population", "≥", 1e5, "100K+ people"]] : [["population", "≥", 1e6, "1M+ people"], ["population", "≥", 2.5e5, "250K+"]];
+    const P = st.level === "counties" ? [["population", "≥", 2e4, "20.000+ hab."], ["population", "<", 1000, "menos de 1.000"]] : [["population", "≥", 1e6, "1 M+ hab."], ["population", "≥", 2e5, "200.000+"]];
     presets.innerHTML = P.map((p, i) => `<button type="button" class="adv-mini" data-preset="${i}">${esc(p[3])}</button>`).join("");
     presets.addEventListener("click", (e) => {
       const i = e.target.closest("[data-preset]")?.dataset.preset;
@@ -220,8 +217,8 @@ export async function mount(ctx) {
     chipsRow.innerHTML = st.filters.map((f, i) => {
       const fd = L().field(f.key);
       const txt = `${fd?.label || f.key} ${f.op} ${numeric(fd) ? fmtShort(fd.format, f.value) : f.value}`;
-      return `<span class="adv-fchip">${esc(txt)}<button type="button" data-rm="${i}" aria-label="Remove filter ${esc(txt)}">✕</button></span>`;
-    }).join("") + (st.filters.length > 1 ? `<button type="button" class="adv-mini" data-rm="all">Clear all</button>` : "") + (st.filters.length && filterHighlight() ? frameBtn() : "");
+      return `<span class="adv-fchip">${esc(txt)}<button type="button" data-rm="${i}" aria-label="Quitar el filtro ${esc(txt)}">✕</button></span>`;
+    }).join("") + (st.filters.length > 1 ? `<button type="button" class="adv-mini" data-rm="all">Quitar todos</button>` : "") + (st.filters.length && filterHighlight() ? frameBtn() : "");
   }
   chipsRow.addEventListener("click", (e) => {
     const i = e.target.closest("[data-rm]")?.dataset.rm;
@@ -237,7 +234,7 @@ export async function mount(ctx) {
     const sortKey = keys.includes("population") ? "population" : keys[0] || "name";
     const maxOf = (k) => { const e = extent(lv.rows.map((r) => val(r, k))); return e ? Math.max(Math.abs(e[0]), Math.abs(e[1])) : 1; };
     const cols = [
-      { key: "name", label: lv.field("name")?.label || "Name", align: "l", width: "minmax(92px,1.7fr)", value: (r) => r.name, html: (r) => `${esc(r.name)}${st.level !== "states" && r.sub ? ` <span class="sub">${esc(r.sub)}</span>` : ""}` },
+      { key: "name", label: lv.field("name")?.label || "Nombre", align: "l", width: "minmax(92px,1.7fr)", value: (r) => r.name, html: (r) => `${esc(r.name)}${st.level !== "states" && r.sub ? ` <span class="sub">${esc(r.sub)}</span>` : ""}` },
       ...keys.map((k) => {
         const f = lv.field(k);
         const title = `${f.label}${f.unit ? ` (${f.unit})` : ""}. Click to sort.`;
@@ -252,7 +249,7 @@ export async function mount(ctx) {
     if (!table) {
       table = createTable(tableHost, {
         caption: `${lv.label} table`, columns: cols, rows: [], sort: { key: sortKey, dir: "desc" }, rank: true, maxHeight: 360,
-        search: `Search ${lv.label.toLowerCase()}`,
+        search: `Buscar ${lv.label.toLowerCase()}`,
         onHover: (r) => { link.hover(r ? rowsHighlight(L(), [r]) : null); scatter.setHot(r ? r.key : null); },
         onClick: (r) => L().focus(r),
       });
@@ -274,8 +271,8 @@ export async function mount(ctx) {
     });
     mk("x", "X", false);
     mk("y", "Y", false);
-    mk("s", "Size", true);
-    mk("c", "Colour", true);
+    mk("s", "Tamaño", true);
+    mk("c", "Color", true);
     const logs = document.createElement("span");
     logs.className = "adv-logs";
     logs.innerHTML = `<label class="adv-check"><input type="checkbox" data-log="x"> log X</label><label class="adv-check"><input type="checkbox" data-log="y"> log Y</label>`;
@@ -345,18 +342,18 @@ export async function mount(ctx) {
       b.className = "adv-lensbtn";
       const on = app.state.lens?.id === lens.id;
       b.setAttribute("aria-pressed", String(on));
-      b.textContent = on ? `Showing the ${lens.name} lens` : `Show ${f.label} on the map as a lens`;
+      b.textContent = on ? `Mostrando la lente ${lens.name}` : `Ver ${f.label} en el mapa`;
       b.addEventListener("click", () => { app.setLens(app.state.lens?.id === lens.id ? null : lens.id); drawScatter(); });
       lensRow.appendChild(b);
     }
-    if (!lensFields.length) lensRow.innerHTML = `<span class="adv-note">No map lens for these columns: hover and brush to see places on the map.</span>`;
+    if (!lensFields.length) lensRow.innerHTML = `<span class="adv-note">Estas columnas no tienen lente de mapa: pasa por los puntos o selecciónalos para verlos en el mapa.</span>`;
     fieldInfo.innerHTML = [fx, fy, fs, fc].filter((f, i, a) => f && a.indexOf(f) === i).map((f) => `<p><b>${esc(f.label)}</b>${f.unit ? ` <span class="sub">${esc(f.unit)}</span>` : ""}: ${esc(f.description || "")}</p>`).join("");
     const srcIds = [fx, fy, fs, fc].filter(Boolean).map((f) => f.source).filter(Boolean);
-    srcEl.innerHTML = sourcesHtml(data, [...srcIds, st.level === "counties" ? "acs_5yr" : "acs_1yr"], [
-      "Columns marked ≈ are population-weighted means of county values: a fair guide, not the true median of the area.",
-      `Metro and state data are ${esc(data.vintage)}; county data are ${esc(data.countyVintage)}. GDP is BEA, counted where the work is done; jobs are counted where people live.`,
-      "Alaska and Hawaii are not on the map, so they are not in the tables.",
-      ...(st.level === "counties" && data.countiesOffMap ? [`${int(data.countiesOffMap)} small counties are smaller than one hex: they are in the table and chart but cannot be outlined on the map.`] : []),
+    srcEl.innerHTML = sourcesHtml(data, [...srcIds, "ine_padron", "ine_censo"], [
+      "Las columnas marcadas con ≈ son medias de los municipios ponderadas por población: una buena guía, no el valor exacto de la zona.",
+      `Ciudades y provincias: ${esc(data.vintage)}; municipios: ${esc(data.countyVintage)}. El PIB (Eurostat) se cuenta donde se trabaja y el de las ciudades es una estimación; los ocupados, donde vive la gente.`,
+      "Ceuta y Melilla tienen fila en las tablas aunque en el mapa apenas ocupan un hexágono.",
+      ...(st.level === "counties" && data.countiesOffMap ? [`${int(data.countiesOffMap)} municipios caben en menos de un hexágono: salen en la tabla y la gráfica pero no se pueden marcar en el mapa.`] : []),
     ]);
   }
 
@@ -365,8 +362,8 @@ export async function mount(ctx) {
     const sel = st.sel ? lv.rows.filter((r) => st.sel.has(r.key)) : [];
     link.base(sel.length ? rowsHighlight(lv, sel, { dim: true }) : filterHighlight(), { frame: sel.length > 1 || (!sel.length && st.filters.length > 0) });
     table?.setSelected(st.sel);
-    selRow.innerHTML = st.sel ? `<span class="adv-fchip">${int(st.sel.size)} selected on the chart<button type="button" data-clear-sel aria-label="Clear the selection">✕</button></span>${frameBtn()}
-      <label class="adv-check"><input type="checkbox" data-only${st.onlySel ? " checked" : ""}> Only show the selection</label>` : `<span class="adv-note">Tip: drag across the chart below to select a group.</span>`;
+    selRow.innerHTML = st.sel ? `<span class="adv-fchip">${int(st.sel.size)} seleccionados en la gráfica<button type="button" data-clear-sel aria-label="Quitar la selección">✕</button></span>${frameBtn()}
+      <label class="adv-check"><input type="checkbox" data-only${st.onlySel ? " checked" : ""}> Mostrar solo la selección</label>` : `<span class="adv-note">Truco: arrastra sobre la gráfica de abajo para seleccionar un grupo.</span>`;
     refreshRows();
     updateSummary();
   }
@@ -390,7 +387,7 @@ export async function mount(ctx) {
   function updateSummary() {
     const rows = filtered();
     const pop = rows.reduce((a, r) => a + (val(r, "population") || 0), 0);
-    summary.innerHTML = `<b>${int(rows.length)}</b> of ${int(L().rows.length)} ${esc(L().label.toLowerCase())} · ${count3(pop)} people${st.sel ? ` · <b>${int(st.sel.size)}</b> selected` : ""}`;
+    summary.innerHTML = `<b>${int(rows.length)}</b> de ${int(L().rows.length)} ${esc(L().label.toLowerCase())} · ${count3(pop)} habitantes${st.sel ? ` · <b>${int(st.sel.size)}</b> seleccionados` : ""}`;
   }
   function refresh() {
     renderChips();

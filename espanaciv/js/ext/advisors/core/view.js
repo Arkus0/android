@@ -97,7 +97,7 @@ export function lensButton(app, lensId, label) {
   const sync = () => {
     const on = app.state.lens?.id === lensId;
     b.setAttribute("aria-pressed", String(on));
-    b.innerHTML = `${icon(lens.icon || "layers", lens.emoji || "🗺️", { size: 14 })}<span>${esc(on ? `Showing ${lens.name} lens` : label || `Show ${lens.name} lens on map`)}</span>`;
+    b.innerHTML = `${icon(lens.icon || "layers", lens.emoji || "🗺️", { size: 14 })}<span>${esc(on ? `Mostrando ${lens.name}` : label || `Ver ${lens.name} en el mapa`)}</span>`;
   };
   sync();
   b.addEventListener("click", () => {

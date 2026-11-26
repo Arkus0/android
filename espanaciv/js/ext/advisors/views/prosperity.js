@@ -137,7 +137,7 @@ export function mount(ctx) {
   barList(rBody, { ...rOpts, rows: rentaRows(lo), max: rmax, ariaLabel: "Ciudades con menos renta" });
 
   // --- paro ------------------------------------------------------------------------------------------------------------
-  const uBody = section(el, { title: "Paro", note: `Parados ÷ población activa según el Censo anual (${esc(data.vintage)}), que se declara en el propio censo y suele salir más alto que la EPA. Ciudades de ${count3(BIG_METRO)}+ habitantes.` });
+  const uBody = section(el, { title: "Paro", note: `Parados ÷ población activa según el Censo anual (${esc(data.vintage)}), que sale de registros administrativos y no coincide exactamente con la EPA. Ciudades de ${count3(BIG_METRO)}+ habitantes.` });
   const uHost = document.createElement("div");
   let uLevel = "states";
   segmented(uBody, { label: "Zonas", value: uLevel, options: [{ value: "states", label: "Provincias" }, { value: "metros", label: "Grandes ciudades" }], onChange: (v) => { uLevel = v; drawU(); } });
