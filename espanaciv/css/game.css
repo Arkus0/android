@@ -144,7 +144,9 @@ kbd { font: 600 10px var(--sans); padding: 1px 4px; border-radius: 3px; border: 
 .gd-row.unknown { grid-template-columns: 1.1fr 3fr; color: var(--ink-dim); }
 
 @media (max-width: 700px) {
-  .game-bar .gb-people, .game-bar .gb-y:not(.gb-sci):not(.gb-war), .game-bar small { display: none; }
+  .game-bar .gb-people, .game-bar .gb-gov, .game-bar small, .game-bar .gb-btn[data-act="diplo"], .game-bar .gb-btn[data-act="log"] { display: none; }
+  .game-bar .gb-y { padding: 3px 5px; font-size: 12px; }
+  .game-bar { gap: 4px; }
   .game-bar .gb-sci { max-width: 120px; }
   .game-end { top: calc(var(--topbar-h) + 8px); bottom: auto; right: 8px; }
   body.game-on #toast { top: calc(var(--topbar-h) + 64px); }
@@ -204,3 +206,55 @@ kbd { font: 600 10px var(--sans); padding: 1px 4px; border-radius: 3px; border: 
 .gm-chips i.bad { border-color: rgba(230,110,90,.6); color: #ffb3a3; }
 .gm-chips i.tag { border-color: var(--gold); color: var(--gold-bright); background: rgba(201,164,92,.15); }
 .gm-choice:disabled { opacity: .45; cursor: not-allowed; }
+
+/* --- jugabilidad: barra de siguiente paso, novedades, consejos -------------------------------------------------- */
+.game-end { display: none !important; }
+.game-act { position: fixed; z-index: 13; left: calc(var(--dock-left, 0px) + 16px); right: 16px; bottom: 16px; margin: 0 auto; max-width: 760px;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 12px; border-color: var(--gold); }
+.ga-main { flex: 1; min-width: 0; }
+.ga-msg { font: bold 15.5px var(--serif); color: var(--gold-bright); }
+.ga-msg small { font: 12px var(--sans); color: var(--ink-dim); }
+.ga-hint { font-size: 12.5px; color: var(--ink); margin-top: 2px; }
+.ga-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.ga-chip { font-size: 12px; padding: 2px 9px; border-radius: 12px; cursor: pointer; background: rgba(201,164,92,.16); border: 1px solid rgba(201,164,92,.5); color: var(--gold-bright); }
+.ga-chip.bad { background: rgba(160,40,30,.35); border-color: #e0604a; color: #ffcfc4; }
+.ga-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; flex: none; }
+.ga-end { font-weight: bold; }
+.ga-end.ready { background: radial-gradient(circle at 50% 30%, #ffe7a3, #d6a645 60%, #9a6f22); color: #1c1406; border-color: #3a2a0c; font-size: 14px; padding: 8px 14px; box-shadow: 0 0 0 2px rgba(236,208,142,.4); }
+.ga-end small { font-weight: normal; opacity: .75; }
+.ga-spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--gold); border-right-color: transparent; border-radius: 50%; animation: ga-spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes ga-spin { to { transform: rotate(360deg); } }
+.odds.good { color: #9fe39f; } .odds.warn { color: #ffd35c; } .odds.bad { color: #ff8a70; }
+.gm-mini { font-size: 11.5px; padding: 2px 8px; border-radius: 4px; cursor: pointer; background: rgba(0,0,0,.3); border: 1px solid rgba(201,164,92,.55); color: var(--gold-bright); }
+.gp-news { list-style: none; padding: 0; margin: 0; }
+.gp-news li { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(201,164,92,.12); font-size: 13px; }
+.gp-news .ic { width: 20px; text-align: center; flex: none; }
+.gp-news .tx { flex: 1; min-width: 0; }
+.gp-news li.good .tx { color: #c8efc8; } .gp-news li.bad .tx { color: #ffc2b5; } .gp-news li.warn .tx { color: #ffe3a3; }
+.gp-status { margin: 4px 0 8px; padding: 6px 9px; border-radius: 6px; background: rgba(201,164,92,.12); border-left: 3px solid var(--gold); font-size: 13px; }
+.gp-opt.sug { border-color: #ffd65a; box-shadow: 0 0 0 1px #ffd65a inset; }
+.gt-tech.sug { box-shadow: 0 0 0 2px #ffd65a; }
+.gp-peek { display: none; }
+.game-tip { position: fixed; z-index: 30; left: calc(var(--dock-left, 0px) + 16px); right: 16px; bottom: 96px; margin: 0 auto; max-width: 560px; padding: 12px 14px; border-color: #ffd65a;
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; animation: gt-in .25s ease-out; }
+.game-tip p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.game-tip .gm-row { grid-column: 1 / -1; margin-top: 6px; }
+.gt-ico { font-size: 22px; }
+@keyframes gt-in { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (max-width: 700px) {
+  .game-act { top: calc(var(--topbar-h) + 6px); bottom: auto; left: 6px; right: 6px; padding: 7px 8px 7px 10px; gap: 8px; border-radius: 10px; }
+  .ga-msg { font-size: 14px; }
+  .ga-hint { font-size: 12px; }
+  .ga-btns .gm-btn { padding: 6px 9px; font-size: 12.5px; }
+  .ga-end small { display: none; }
+  .game-tip { top: calc(var(--topbar-h) + 84px); bottom: auto; left: 8px; right: 8px; padding: 8px 10px; gap: 2px 8px; }
+  .game-tip p { font-size: 12.5px; line-height: 1.35; }
+  .game-tip .gt-ico { font-size: 17px; }
+  .game-tip .gm-row { margin-top: 4px; }
+  .gp-peek { display: inline-grid; margin-left: auto; }
+  .app-dock.game-dock { height: 50vh; height: 50dvh; transition: height .18s ease-out; }
+  .app-dock.game-dock.peek { height: 22vh; height: 22dvh; }
+  .game-dock .gp-head { position: sticky; top: 0; z-index: 2; background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 35%, #17222f), #17222f 85%); }
+  .game-bar .gb-turn { display: none; }
+}

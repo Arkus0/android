@@ -5,7 +5,7 @@ import {
   K, playerCities, cityYield, growthNeed, itemCost, itemName, itemEmoji, buildOptions, buyCost, availableTechs, techCost,
   turnsTo, playerTotals, canFound, cityStrength, cityMaxHp, military, score, atWar, terrainName, tileYield, eraOf, housing, isMilitary,
   countryName, availableGovs, stabilityTarget, nameSuggestions, altSpain, pmods, GOV_COOLDOWN, territoryShare, turnsOf, canAfford,
-  workOptions, tradeTargets, routesOf, routeYield, maxRoutes, cityById,
+  workOptions, tradeTargets, routesOf, routeYield, maxRoutes, cityById, forecast, rumors, odds,
 } from "./sim.js";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -122,8 +122,8 @@ export function renderHud(game) {
     <button class="gb-btn" data-act="menu" title="Partida">☰</button>`;
 }
 
-// --- botón de fin de turno -------------------------------------------------------------------------------------
-export function renderEndTurn(game) {
+// --- botón de fin de turno (sustituido por la barra de siguiente paso; se conserva por compatibilidad) -------------
+export function renderEndTurnOld(game) {
   let b = document.getElementById("game-end");
   if (!b) {
     b = el("div", "game-end");
@@ -212,8 +212,9 @@ function unitPanel(game, u) {
   }
   return `<div class="gp-head" style="--pc:${P.color};--pi:${P.ink}">
       <span class="gp-emoji">${U.emoji}</span><div><h3>${esc(U.name)}</h3><span class="gp-sub">${esc(P.name)}${mine ? "" : " (ajena)"}</span></div>
-      <button class="icon-btn gp-close" data-act="deselect" aria-label="Cerrar">✕</button></div>
+      <button class="icon-btn gp-peek" data-act="peek" aria-label="Plegar o desplegar el panel">⇕</button><button class="icon-btn gp-close" data-act="deselect" aria-label="Cerrar">✕</button></div>
     <p class="gp-stats">${statLine(G, u)}</p>
+    ${mine ? `<p class="gp-status">${esc(unitStatus(G, M, u))}</p>` : ""}
     <p class="gm-note">${esc(U.desc)}</p>
     <p class="gm-note">📍 ${esc(terrainName(M, u.cell))}${M.river[u.cell] ? " · río" : ""}</p>
     ${mine ? `<div class="gp-actions">${actions}</div>
@@ -234,7 +235,7 @@ function cityPanel(game, c) {
   const mine = c.owner === 0;
   const head = `<div class="gp-head" style="--pc:${P.color};--pi:${P.ink}">
       <span class="gp-pop">${c.pop}</span><div><h3>${c.capital ? "★ " : ""}${esc(c.name)}</h3><span class="gp-sub">${esc(P.name)} · fundada ${yearLabel(c.founded)}</span></div>
-      <button class="icon-btn gp-close" data-act="deselect" aria-label="Cerrar">✕</button></div>`;
+      <button class="icon-btn gp-peek" data-act="peek" aria-label="Plegar o desplegar el panel">⇕</button><button class="icon-btn gp-close" data-act="deselect" aria-label="Cerrar">✕</button></div>`;
   const def = `🛡️ ${cityStrength(G, M, c)} · ❤️ ${Math.round(c.hp)}/${cityMaxHp(c)}`;
   if (!mine) {
     return `${head}<p class="gp-stats">${def}</p>
@@ -246,6 +247,7 @@ function cityPanel(game, c) {
   const hcap = housing(G, M, c);
   const growTxt = c.pop >= hcap ? `Sin vivienda (${c.pop}/${hcap}): construye un granero o un acueducto`
     : y.food > 0 ? `Crece en ${tt(turnsTo(need - c.food, y.food))}` : y.food < 0 ? "¡Pasa hambre!" : "Estancada";
+  const sug = game.suggestBuild?.(c);
   const it = c.build;
   const cost = itemCost(G, it, 0);
   const bc = buyCost(G, c);
@@ -253,7 +255,7 @@ function cityPanel(game, c) {
       <small>${it.kind === "trade" ? `Convierte la producción en oro (+${fmt(y.p * 0.5)} 💰)` : `${Math.floor(c.prod)}/${cost} · ${tt(turnsTo(cost - c.prod, y.p))}`}</small>
       ${it.kind !== "trade" ? `<span class="gp-bar"><i style="width:${Math.min(100, (100 * c.prod) / Math.max(1, cost))}%"></i></span>` : ""}</div>
       ${bc != null ? `<button class="gm-btn gm-buy" data-act="buy"${P.gold < bc ? " disabled" : ""} title="Comprar ya">💰 ${bc}</button>` : ""}</div>`
-    : `<div class="gp-cur gp-none">⚠️ Elige qué construir</div>`;
+    : `<div class="gp-cur gp-none">⚠️ Elige qué construir${sug ? ` · ⭐ sugerencia: <b>${esc(itemName(sug))}</b>` : ""}</div>`;
   const opts = buildOptions(G, M, c);
   const group = (kind, title) => {
     const list = opts.filter((o) => o.kind === kind);
@@ -263,8 +265,9 @@ function cityPanel(game, c) {
       const turns = o.kind === "trade" ? "" : `${turnsTo(o.cost - (it && it.kind === o.kind && it.id === o.id ? c.prod : 0), y.p)} t`;
       const on = it && it.kind === o.kind && it.id === o.id;
       const title = o.ok ? def?.desc || "Convierte la producción en oro" : o.why;
-      return `<button class="gp-opt${on ? " on" : ""}" data-act="build" data-kind="${o.kind}" data-id="${o.id}"${o.ok ? "" : " disabled"} title="${esc(title)}">
-        <span>${o.kind === "trade" ? "💱" : def.emoji}</span><b>${esc(o.kind === "trade" ? "Comercio" : def.name)}</b><small>${o.kind === "trade" ? "→ 💰" : `${o.cost} ⚙️ · ${turns}`}</small></button>`;
+      const isSug = sug && sug.kind === o.kind && sug.id === o.id;
+      return `<button class="gp-opt${on ? " on" : ""}${isSug ? " sug" : ""}" data-act="build" data-kind="${o.kind}" data-id="${o.id}"${o.ok ? "" : " disabled"} title="${esc(title)}">
+        <span>${o.kind === "trade" ? "💱" : def.emoji}</span><b>${isSug ? "⭐ " : ""}${esc(o.kind === "trade" ? "Comercio" : def.name)}</b><small>${o.kind === "trade" ? "→ 💰" : `${o.cost} ⚙️ · ${turns}`}${isSug ? " · sugerido" : ""}</small></button>`;
     }).join("")}</div>`;
   };
   return `${head}
@@ -283,23 +286,143 @@ function cityPanel(game, c) {
     <h4>Construido</h4><p class="gm-note">${c.buildings.map((b) => `${BUILDINGS[b].emoji} ${esc(BUILDINGS[b].name)}`).join(" · ") || "Nada todavía"}${c.wonders.length ? `<br>${c.wonders.map((w) => `🏛️ ${esc(WONDERS[w].name)}`).join(" · ")}` : ""}</p>`;
 }
 
+function itemList(list, empty) {
+  if (!list.length) return `<p class="gm-note">${esc(empty)}</p>`;
+  return `<ul class="gp-news">${list.map((x) => `<li class="${x.tone || ""}"><span class="ic">${x.icon || "•"}</span><span class="tx">${esc(x.text)}</span>${x.cell != null ? `<button class="gm-mini" data-act="goto" data-cell="${x.cell}">Ver</button>` : ""}</li>`).join("")}</ul>`;
+}
 function summaryPanel(game) {
   const { G, M } = game;
   const P = G.players[0];
   const t = playerTotals(G, M, 0);
   const cs = playerCities(G, 0);
-  const recent = G.log.filter((e) => e.turn >= G.turn - 2 && (e.player === 0 || e.all || e.kind === "meet")).slice(-10).reverse();
-  const pend = game.pending();
-  return `<div class="gp-head" style="--pc:${P.color};--pi:${P.ink}"><span class="gp-emoji">🏛️</span><div><h3>${esc(countryName(P))}</h3><span class="gp-sub">${yearLabel(G.turn)} · turno ${G.turn} · ${esc(GOVS[P.gov]?.name || "")} · puntos ${score(G, 0)}</span></div></div>
+  const fc = forecast(G, M, 0);
+  const rep = game.report || [];
+  return `<div class="gp-head" style="--pc:${P.color};--pi:${P.ink}"><span class="gp-emoji">🏛️</span><div><h3>${esc(countryName(P))}</h3><span class="gp-sub">${yearLabel(G.turn)} · turno ${G.turn} · ${esc(GOVS[P.gov]?.name || "")} · puntos ${score(G, 0)}</span></div><button class="icon-btn gp-peek" data-act="peek" aria-label="Plegar o desplegar el panel">⇕</button></div>
     ${yieldRow({ food: t.food, p: t.p, g: t.net, s: t.s, c: t.c })}
-    <p class="gp-stats">🏙️ ${cs.length} ciudades · 👥 ${cs.reduce((a, c) => a + c.pop, 0)} población · ⚔️ ejército ${military(G, 0)}</p>
-    ${pend ? `<button class="gm-btn gm-primary gp-wide" data-act="pending">${esc(pend.label)}</button>` : ""}
-    <p class="gp-stats">⚖️ Estabilidad ${Math.round(P.stability)}/100 · 🗺️ ${Math.round(territoryShare(G, M, 0) * 100)} % de la Península · ${FAITHS[P.faith]?.emoji || ""} ${esc(FAITHS[P.faith]?.name || "")}</p>
-    <div class="gp-actions"><button class="gm-btn" data-act="tech">🔬 Tecnologías <kbd>T</kbd></button><button class="gm-btn" data-act="gov">👑 Gobierno <kbd>G</kbd></button><button class="gm-btn" data-act="diplo">🤝 Diplomacia</button><button class="gm-btn" data-act="history">📖 Tu historia</button><button class="gm-btn" data-act="next">👉 Siguiente unidad <kbd>N</kbd></button></div>
-    <h4>Crónica reciente</h4>
-    <ul class="gp-log">${recent.map((e) => `<li${e.cell != null ? ` data-act="goto" data-cell="${e.cell}"` : ""}><small>T${e.turn}</small> ${esc(e.msg)}</li>`).join("") || "<li class='muted'>Nada por ahora.</li>"}</ul>
-    <p class="gm-hint">Consejo: elige una unidad pulsándola. Los colonos fundan ciudades (B); la producción de cada ciudad se elige pulsando su nombre. El punto amarillo marca las unidades que esperan órdenes.</p>`;
+    <p class="gp-stats">🏙️ ${cs.length} ciudades · 👥 ${cs.reduce((a, c) => a + c.pop, 0)} · ⚖️ ${Math.round(P.stability)} · ${FAITHS[P.faith]?.emoji || ""} · 🗺️ ${Math.round(territoryShare(G, M, 0) * 100)} %</p>
+    ${rep.length ? `<h4>📰 Novedades de este turno</h4>${itemList(rep, "")}` : ""}
+    <h4>🔮 Lo que viene</h4>${itemList(fc, "Nada especial a la vista.")}
+    <div class="gp-actions"><button class="gm-btn" data-act="tech">🔬 Tecnologías <kbd>T</kbd></button><button class="gm-btn" data-act="gov">👑 Gobierno <kbd>G</kbd></button><button class="gm-btn" data-act="diplo">🤝 Diplomacia</button><button class="gm-btn" data-act="history">📖 Tu historia</button><button class="gm-btn" data-act="log">📜 Crónica</button><button class="gm-btn" data-act="menu-help">❓ Cómo se juega</button></div>`;
 }
+
+/** En qué está una unidad propia, en una frase. */
+function unitStatus(G, M, u) {
+  const U = UNITS[u.type];
+  if (u.task) return `Trabajando: faltan ${u.task.left} turno${u.task.left === 1 ? "" : "s"}.`;
+  if (u.goto && u.goto.length) return "En camino: seguirá su ruta al terminar el turno.";
+  if (u.fortified) return "Fortificada: +4 de defensa. Toca una casilla para moverla.";
+  if (u.sleep) return "Durmiendo: no pedirá órdenes. Muévela para despertarla.";
+  if (u.mp <= 0) return "Ya ha actuado este turno.";
+  if (U.worker) return "Elige abajo qué construir aquí, o toca otra casilla de tu territorio para moverla.";
+  if (U.trade) return "Llévala junto a otra ciudad para abrir una ruta comercial.";
+  if (u.type === "colono") return "Busca un buen sitio y funda una ciudad (B). Junto a ríos y costa crece más.";
+  return `Le quedan ${fmt(u.mp)} movimientos. Toca una casilla iluminada para moverla, o un enemigo con borde rojo para atacar.`;
+}
+
+// --- barra de siguiente paso --------------------------------------------------------------------------------------
+export function renderActionBar(game) {
+  let bar = document.getElementById("game-act");
+  if (!bar) {
+    bar = el("div", "game-act panel");
+    bar.id = "game-act";
+    bar.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-act]");
+      if (!t || t.disabled) return;
+      game.action(t.dataset.act, t.dataset);
+    });
+    document.body.appendChild(bar);
+  }
+  document.getElementById("game-end")?.remove();
+  const { G, M } = game;
+  if (!G) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const P = G.players[0];
+  let msg = "", hint = "", btns = "";
+  const pend = game.pendingAll();
+  const nPend = pend.units.length + pend.cities.length + (pend.research ? 1 : 0);
+  if (game.busy) {
+    msg = `<span class="ga-spin"></span> Los demás pueblos están moviendo…`;
+  } else if (G.over) {
+    msg = "🏁 La partida ha terminado.";
+    btns = `<button class="gm-btn gm-primary" data-act="history">📖 Tu historia</button>`;
+  } else if (game.target) {
+    const tg = game.target, u = game.selUnit;
+    if (tg.attack && tg.pv) {
+      const od = odds(tg.pv);
+      msg = `<b class="odds ${od.tone}">⚔️ ${esc(od.label)}</b>`;
+      hint = `${esc(UNITS[u.type].name)} contra ${esc(tg.pv.city ? tg.pv.city.name : UNITS[tg.pv.unit.type].name)}: daño causado ≈ ${tg.pv.toDef}${tg.pv.ranged ? " · a distancia, sin riesgo" : ` · recibido ≈ ${tg.pv.toAtt}`}${tg.pv.war ? "" : " · <b class='gb-warn'>declararás la guerra</b>"}`;
+      btns = `<button class="gm-btn gm-danger" data-act="confirm">⚔️ Atacar</button><button class="gm-btn" data-act="cancel">✖</button>`;
+    } else {
+      const n = (tg.turns?.at(-1) ?? 0) + 1;
+      msg = `👣 ${esc(UNITS[u.type].name)}: ${tg.attack ? "acercarse y atacar" : "mover aquí"}`;
+      hint = `Llega en ${n} turno${n === 1 ? "" : "s"}${n > 1 ? " (seguirá la ruta sola)" : ""} · ${esc(terrainName(M, tg.cell))}`;
+      btns = `<button class="gm-btn gm-primary" data-act="confirm">✔ Mover</button><button class="gm-btn" data-act="cancel">✖</button>`;
+    }
+  } else if (game.selUnit && game.selUnit.owner === 0 && pend.units.includes(game.selUnit)) {
+    const u = game.selUnit;
+    msg = `👉 ${esc(UNITS[u.type].name)}${pend.units.length > 1 ? ` <small>(${pend.units.indexOf(u) + 1} de ${pend.units.length} esperando)</small>` : ""}`;
+    hint = esc(unitStatus(G, M, u));
+    btns = `<button class="gm-btn" data-act="skip" title="Espacio">⏭️ Saltar</button>${pend.units.length > 1 ? `<button class="gm-btn" data-act="next" title="N">👉 Siguiente</button>` : ""}`;
+  } else if (pend.research) {
+    msg = "🔬 Elige qué investigar";
+    const sg = game.suggestResearch?.();
+    hint = sg ? `Sugerencia: ${esc(TECHS[sg].name)}` : "";
+    btns = `<button class="gm-btn gm-primary" data-act="tech">Elegir</button>`;
+  } else if (pend.cities.length) {
+    const c = pend.cities[0];
+    msg = `⚙️ ${esc(c.name)} no está construyendo nada`;
+    const sg = game.suggestBuild?.(c);
+    hint = sg ? `Sugerencia: ${esc(itemName(sg))}` : "";
+    btns = `<button class="gm-btn gm-primary" data-act="pending">Elegir producción</button>`;
+  } else if (pend.units.length) {
+    msg = `👉 ${pend.units.length} unidad${pend.units.length === 1 ? "" : "es"} esperan órdenes`;
+    hint = "Puedes moverlas, fortificarlas (F) o saltar su turno (Espacio).";
+    btns = `<button class="gm-btn gm-primary" data-act="next">Ir a la siguiente</button>`;
+  } else {
+    msg = "✅ Todo listo";
+    hint = "Termina el turno para que el tiempo avance.";
+  }
+  const rm = rumors(G, M);
+  const chips = [
+    ...rm.map((r) => `<button class="ga-chip bad" data-act="goto" data-cell="${r.cell}" title="${esc(r.inv.text)}">🚩 ${esc(r.inv.short)} en ~${r.turns} t</button>`),
+    (game.report || []).length ? `<button class="ga-chip" data-act="summary">📰 ${game.report.length} novedad${game.report.length === 1 ? "" : "es"}</button>` : "",
+  ].join("");
+  const endLbl = nPend ? `Terminar turno <small>(quedan ${nPend})</small>` : "Terminar turno";
+  bar.innerHTML = `<div class="ga-main"><div class="ga-msg">${msg}</div>${hint ? `<div class="ga-hint">${hint}</div>` : ""}${chips ? `<div class="ga-chips">${chips}</div>` : ""}</div>
+    <div class="ga-btns">${btns}${game.busy || G.over ? "" : `<button class="gm-btn ga-end${nPend ? "" : " ready"}" data-act="endturn" title="Intro">${endLbl} ▶</button>`}</div>`;
+}
+
+// --- consejos (la primera vez que pasa algo) ----------------------------------------------------------------------
+const TIPS = {
+  start: "Tus colonos pueden fundar la capital aquí mismo: pulsa «Fundar ciudad» (o B). Junto a un río, un lago o la costa, las ciudades crecen más.",
+  city: "Ahora elige qué construye tu ciudad. ⭐ marca la sugerencia: al principio, unos guerreros para defenderla y luego colonos para expandirte.",
+  research: "Elige qué investigar: cada tecnología desbloquea unidades, edificios o gobiernos. ⭐ marca una buena opción.",
+  move: "Toca una casilla para ver el camino y en cuántos turnos llega; toca otra vez (o pulsa «Mover») para confirmar. Con ratón, un clic basta. Las casillas iluminadas son las que alcanza este turno.",
+  enemy: "Las fichas con borde rojo son enemigos en guerra contigo; las casillas marcadas en rojo, los que puedes atacar ya. Antes de atacar verás el resultado probable.",
+  endturn: "No queda nada por hacer: pulsa «Terminar turno» (o Intro). Luego verás las novedades del turno en el panel.",
+  report: "Estas son las novedades del turno y lo que viene después. Pulsa «Ver» para ir a cada sitio del mapa.",
+  event: "Las decisiones cambian tu país: cada opción muestra sus efectos (en verde lo bueno, en rojo lo malo) y la identidad que aporta.",
+  rumor: "Se acerca una invasión histórica (🚩 arriba). Refuerza las ciudades cercanas con murallas y tropas: si toman una ciudad, se quedarán para siempre.",
+  worker: "Los obreros mejoran las casillas de tu territorio: granjas para crecer, minas para producir, caminos para moverte más rápido. Elige abajo qué construir.",
+  trade: "Lleva a los mercaderes junto a otra ciudad (tuya o de un vecino en paz) para abrir una ruta comercial. Las rutas con extranjeros rinden más.",
+};
+const TIP_STORE = "espanaciv.hispania.tips";
+function tipsSeen() { try { return JSON.parse(localStorage.getItem(TIP_STORE) || "{}"); } catch { return {}; } }
+export function tip(game, id) {
+  const seen = tipsSeen();
+  if (seen.off || seen[id] || !TIPS[id] || document.getElementById("game-tip")) return;
+  seen[id] = 1;
+  try { localStorage.setItem(TIP_STORE, JSON.stringify(seen)); } catch { /* nada */ }
+  const box = el("div", "game-tip panel", `<span class="gt-ico">💡</span><p>${esc(TIPS[id])}</p>
+    <div class="gm-row gm-end"><button class="gm-btn gm-mini" data-off>No más consejos</button><button class="gm-btn gm-primary gm-mini" data-ok>Entendido</button></div>`);
+  box.id = "game-tip";
+  box.addEventListener("click", (e) => {
+    if (e.target.closest("[data-off]")) { const s2 = tipsSeen(); s2.off = 1; try { localStorage.setItem(TIP_STORE, JSON.stringify(s2)); } catch { /* nada */ } box.remove(); }
+    if (e.target.closest("[data-ok]")) box.remove();
+  });
+  document.body.appendChild(box);
+}
+export function resetTips() { try { localStorage.removeItem(TIP_STORE); } catch { /* nada */ } }
 
 // --- tecnologías ------------------------------------------------------------------------------------------------
 export function showTech(game) {
@@ -309,6 +432,7 @@ export function showTech(game) {
   const av = new Set(availableTechs(P));
   const body = el("div", "gm-tech");
   const goal = P.researchGoal;
+  const sugT = game.suggestResearch?.();
   body.innerHTML = `<p class="gm-note">Ciencia: <b>${fmt(sci)}</b> 🔬 por turno · acumulada ${Math.floor(P.science)}. Pulsa una tecnología disponible para investigarla, o una bloqueada para fijarla como objetivo (se irán investigando sus requisitos).</p>
     <div class="gt-cols" style="--n:${ERAS.length}">${ERAS.map((era, e) => `<div class="gt-col"><h4>${esc(era)}</h4>${Object.entries(TECHS).filter(([id, T]) => T.era === e && T.cost > 0).map(([id, T]) => {
       const known = P.techs.includes(id);
@@ -316,8 +440,8 @@ export function showTech(game) {
       const cost = techCost(P, id);
       const turns = known ? "" : turnsTo(cost - (P.research === id ? P.science : 0), sci);
       const un = unlocksOf(id);
-      return `<button class="gt-tech ${state}${goal === id ? " goal" : ""}" data-tech="${id}" ${known ? "disabled" : ""} title="${esc([T.desc, un.map((x) => `${x.emoji} ${x.name}: ${x.desc}`).join("\n"), T.req.length ? `Requiere: ${T.req.map((r) => TECHS[r].name).join(", ")}` : ""].filter(Boolean).join("\n"))}">
-        <b>${esc(T.name)}</b><small>${known ? "✓ conocida" : `${cost} 🔬 · ${turns === Infinity ? "—" : `${turns} t`}`}</small>
+      return `<button class="gt-tech ${state}${goal === id ? " goal" : ""}${sugT === id && state === "av" ? " sug" : ""}" data-tech="${id}" ${known ? "disabled" : ""} title="${esc([T.desc, un.map((x) => `${x.emoji} ${x.name}: ${x.desc}`).join("\n"), T.req.length ? `Requiere: ${T.req.map((r) => TECHS[r].name).join(", ")}` : ""].filter(Boolean).join("\n"))}">
+        <b>${sugT === id && state === "av" ? "⭐ " : ""}${esc(T.name)}</b><small>${known ? "✓ conocida" : `${cost} 🔬 · ${turns === Infinity ? "—" : `${turns} t`}`}${sugT === id && state === "av" ? " · sugerida" : ""}</small>
         <span class="gt-un">${un.map((x) => x.emoji).join(" ")}</span></button>`;
     }).join("")}</div>`).join("")}</div>`;
   body.addEventListener("click", (e) => {
@@ -376,6 +500,7 @@ export function showMenu(game) {
     <button class="gm-btn gp-wide" data-m="save">💾 Guardar ahora <small class="muted">(se guarda sola cada turno)</small></button>
     <button class="gm-btn gp-wide" data-m="new">🆕 Nueva partida</button>
     <button class="gm-btn gp-wide" data-m="help">❓ Cómo se juega</button>
+    <button class="gm-btn gp-wide" data-m="tips">💡 Volver a ver los consejos</button>
     <button class="gm-btn gp-wide" data-m="exit">🗺️ Volver al mapa de datos</button>`);
   body.addEventListener("click", (e) => {
     const m = e.target.closest("[data-m]")?.dataset.m;
@@ -390,11 +515,14 @@ export function showHelp(game) {
   modal(game, {
     title: "Cómo se juega", cls: "gm-mid",
     body: `<ul class="gm-help">
-      <li><b>Unidades</b>: púlsalas para elegirlas; luego pulsa una casilla para moverlas (la línea discontinua marca la ruta y el número, en qué turno llegan). Montañas, colinas, bosques y humedales cuestan más movimiento; las cumbres no se pueden cruzar.</li>
+      <li><b>La barra de abajo</b> (arriba en el móvil) te dice siempre qué toca: elegir investigación, elegir qué construye una ciudad o dar órdenes a una unidad, con un botón para hacerlo. Cuando todo está listo, «Terminar turno» (o Intro).</li>
+      <li><b>Novedades y lo que viene</b>: al pasar el turno, el panel lista lo que ha pasado (con «Ver» para ir al sitio) y lo que va a pasar: qué ciudad crece o termina algo, cuándo descubrirás la siguiente tecnología y los rumores de invasión (🚩) unos turnos antes de que llegue.</li>
+      <li><b>Unidades</b>: tócalas o púlsalas para elegirlas (las tuyas tienen borde blanco y un anillo dorado si esperan órdenes; las enemigas en guerra, borde rojo). Luego toca una casilla: verás la ruta y en qué turno llega. Con ratón, un clic mueve; en el móvil, el primer toque enseña y el segundo (o «✔ Mover») confirma. Montañas, colinas, bosques y humedales cuestan más; las cumbres no se cruzan.</li>
+      <li><b>Sugerencias</b>: ⭐ marca lo que te conviene construir o investigar (lo que haría un buen gobernante en tu lugar).</li>
       <li><b>Ciudades</b>: los colonos fundan con <kbd>B</kbd> a 4 casillas o más de otra ciudad. Junto a un río, un lago o la costa tienen más vivienda. Pulsa el nombre de una ciudad para elegir qué construye.</li>
       <li><b>Rendimientos</b>: 🌾 hace crecer la ciudad, ⚙️ construye, 💰 paga las soldadas y compra, 🔬 investiga y 🎭 amplía las fronteras.</li>
       <li><b>Maravillas</b>: cada una solo se puede levantar en una ciudad cuyo territorio incluya su sitio real (Atapuerca en Burgos, la Mezquita en Córdoba…).</li>
-      <li><b>Combate</b>: pulsa un enemigo marcado en rojo. Pasa el ratón por encima antes para ver el daño previsto. Colinas, montañas, bosques y fortificarse (<kbd>F</kbd>) ayudan a defender. Las ciudades se toman bajando su vida a 0 y entrando cuerpo a cuerpo.</li>
+      <li><b>Combate</b>: pulsa un enemigo marcado en rojo. Antes verás el resultado probable en palabras («Ventaja clara», «Igualado», «Tu unidad morirá») y el daño previsto. Colinas, montañas, bosques y fortificarse (<kbd>F</kbd>) ayudan a defender. Las ciudades se toman bajando su vida a 0 y entrando cuerpo a cuerpo.</li>
       <li><b>Mar</b>: con Navegación las unidades embarcan por la costa (Baleares, Canarias); con Cartografía, por el mar abierto.</li>
       <li><b>Obreros</b>: construyen granjas, minas, aserraderos, viñedos y olivares, dehesas y caminos en tu territorio. Por los caminos se va al doble de rápido (al cuádruple con el ferrocarril).</li>
       <li><b>Comercio</b>: los mercaderes abren rutas desde su ciudad de origen hasta otra ciudad tuya o de un vecino en paz. Las rutas con extranjeros rinden más y traen ciencia; una guerra las corta.</li>
@@ -455,7 +583,8 @@ export function tooltip(game, cell) {
   if (su && su.owner === 0) {
     const pv = game.attackPreview(cell);
     if (pv) {
-      lines.push(`<hr>${pv.war ? "" : "<b class='gb-warn'>Hay que declarar la guerra.</b><br>"}⚔️ Tu fuerza <b>${pv.A}</b> contra <b>${pv.D}</b>`);
+      const od = odds(pv);
+      lines.push(`<hr>${pv.war ? "" : "<b class='gb-warn'>Hay que declarar la guerra.</b><br>"}<b class="odds ${od.tone}">⚔️ ${esc(od.label)}</b><br>Tu fuerza <b>${pv.A}</b> contra <b>${pv.D}</b>`);
       lines.push(`Daño causado ≈ <b>${pv.toDef}</b> (le quedan ${Math.max(0, Math.round(pv.defHp - pv.toDef))})${pv.ranged ? " · a distancia: no recibes daño" : ` · recibido ≈ <b>${pv.toAtt}</b>`}`);
     } else if (game.pathPreview && game.pathPreview.target === cell) {
       const t = game.pathPreview.turns.at(-1) + 1;

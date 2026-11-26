@@ -4,7 +4,7 @@
 // Los caminos (Path2D) de territorio y niebla se cachean por revisión de la partida (game.rev).
 import { drawCityTile } from "../../render/art/city.js";
 import { UNITS, RESOURCES, IMPROVEMENTS } from "./rules.js";
-import { K, cityYield, itemCost, itemEmoji, growthNeed, cityMaxHp, isMilitary, isNaval, cityById, has } from "./sim.js";
+import { K, cityYield, itemCost, itemEmoji, growthNeed, cityMaxHp, isMilitary, isNaval, cityById, has, atWar } from "./sim.js";
 
 const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; };
@@ -14,6 +14,8 @@ export function createRenderer(app, game) {
   const cache = { rev: -1 };
   const fx = []; // {x, y, text, color, t0}
   let banners = []; // {x0, y0, x1, y1, city}
+  let tokens = []; // {u, x, y, r}: dónde se ha dibujado cada unidad (para tocarla)
+  const pings = []; // {cell, color, t0}
 
   function hexPath(p, i) {
     const x = grid.cx(i), y = grid.cy(i);
@@ -177,7 +179,12 @@ export function createRenderer(app, game) {
           ctx.lineWidth = 3 / s;
           const p = new Path2D(); hexPath(p, t); ctx.stroke(p);
         }
-        const pv = game.pathPreview;
+        if (game.target) {
+          ctx.strokeStyle = game.target.attack ? "rgba(255,80,60,1)" : "rgba(255,233,168,1)";
+          ctx.lineWidth = 4 / s;
+          const p = new Path2D(); hexPath(p, game.target.cell); ctx.stroke(p);
+        }
+        const pv = game.target?.path ? game.target : game.pathPreview;
         if (pv && pv.path.length) {
           const pts = [u.cell, ...pv.path];
           ctx.strokeStyle = pv.attack ? "rgba(255,90,70,.95)" : "rgba(255,250,225,.92)";
@@ -220,7 +227,8 @@ export function createRenderer(app, game) {
       const toS = (i) => [(grid.cx(i) - cam.x) * s + cam.w / 2, (grid.cy(i) - cam.y) * s + cam.h / 2];
       const on = (x, y, m = 60) => x > -m && y > -m && x < cam.w + m && y < cam.h + m;
       // unidades
-      const r = Math.max(8, Math.min(20, Rpx * 0.42));
+      const r = Math.max(game.touch ? 12 : 9, Math.min(20, Rpx * 0.42));
+      tokens = [];
       const byCell = new Map();
       for (const u of G.units) {
         if (u.owner !== 0 && !vis[u.cell]) continue;
@@ -236,7 +244,9 @@ export function createRenderer(app, game) {
           const civ = !isMilitary(u);
           let x = x0, y = y0 + (cityCells.has(cell) ? Rpx * 0.32 : 0);
           if (us.length > 1 && k > 0) { x += r * 0.9; y += r * 0.55; }
-          drawUnit(ctx, G, u, x, y, civ && us.length > 1 ? r * 0.78 : r, u === game.selUnit);
+          const rr = civ && us.length > 1 ? r * 0.78 : r;
+          drawUnit(ctx, G, u, x, y, rr, u === game.selUnit);
+          tokens.push({ u, x, y, r: rr });
         });
       }
       // estandartes de ciudad
@@ -288,8 +298,23 @@ export function createRenderer(app, game) {
         if (game.selCity === c) { ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 2; roundRect(ctx, bx - 2, by - 2, W + 4, H + 4, 5); ctx.stroke(); }
         banners.push({ x0: bx, y0: by, x1: bx + W, y1: by + H, city: c });
       }
-      // números flotantes
+      // avisos: anillos que se expanden sobre lo que ha pasado
       const now = performance.now();
+      for (let k = pings.length - 1; k >= 0; k--) {
+        const g = pings[k];
+        const t = (now - g.t0) / 2600;
+        if (t >= 1) { pings.splice(k, 1); continue; }
+        const [x, y] = toS(g.cell);
+        for (const off of [0, 0.33]) {
+          const tt = (t + off) % 1;
+          ctx.globalAlpha = (1 - tt) * 0.9;
+          ctx.strokeStyle = g.color; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(x, y, 10 + tt * Math.max(26, Rpx * 1.3), 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (pings.length) requestAnimationFrame(() => app.requestDraw());
+      // números flotantes
       for (let k = fx.length - 1; k >= 0; k--) {
         const f = fx[k];
         const t = (now - f.t0) / 1300;
@@ -321,9 +346,15 @@ export function createRenderer(app, game) {
     }
     ctx.fillStyle = "rgba(0,0,0,.45)";
     ctx.beginPath(); ctx.ellipse(x, y + r * 0.9, r * 0.9, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    const mine = u.owner === 0, enemy = !mine && atWar(G, 0, u.owner);
+    const waiting = mine && u.mp > 0 && !u.goto && !u.sleep && !u.skip && !u.task && !u.fortified;
+    if (waiting && !selected) {
+      ctx.strokeStyle = "rgba(255,214,90,.95)"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, y, r + 3.5, 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.fillStyle = P.color;
-    ctx.strokeStyle = "rgba(10,12,16,.9)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = mine ? "#ffffff" : enemy ? "#ff3b2f" : "rgba(10,12,16,.9)";
+    ctx.lineWidth = mine || enemy ? 2.6 : 2;
     ctx.beginPath();
     if (U.cls === "civil") ctx.arc(x, y, r * 0.86, 0, Math.PI * 2);
     else if (U.cls === "naval") { // casco de barco
@@ -352,9 +383,10 @@ export function createRenderer(app, game) {
     if (u.task) { ctx.font = `${Math.round(r * 0.75)}px sans-serif`; ctx.fillText("🔨", x + r * 0.9, y - r * 0.7); }
     if (u.owner === 0 && !u.task) {
       if (u.fortified) { ctx.font = `${Math.round(r * 0.7)}px sans-serif`; ctx.fillText("🛡", x + r * 0.9, y - r * 0.7); }
-      else if (u.mp > 0 && !u.goto && !u.sleep && !u.skip) {
-        ctx.fillStyle = "#ffe36e"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(x + r * 0.85, y - r * 0.75, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      else if (waiting) {
+        ctx.fillStyle = "#ffd65a"; ctx.strokeStyle = "#1a1206"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x + r * 0.9, y - r * 0.8, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#1a1206"; ctx.font = "bold 9px sans-serif"; ctx.fillText("!", x + r * 0.9, y - r * 0.8 + 0.5);
       }
     }
     ctx.restore();
@@ -363,6 +395,11 @@ export function createRenderer(app, game) {
   return {
     overlays: [world, screen],
     bannerAt(mx, my) { return banners.find((b) => mx >= b.x0 && mx <= b.x1 && my >= b.y0 && my <= b.y1)?.city || null; },
+    /** Unidades cuya ficha queda bajo el dedo o el ratón (con margen para el táctil), las más cercanas primero. */
+    unitsAt(mx, my, pad = 6) {
+      return tokens.filter((t) => Math.hypot(t.x - mx, t.y - my) <= t.r + pad).sort((a, b) => Math.hypot(a.x - mx, a.y - my) - Math.hypot(b.x - mx, b.y - my)).map((t) => t.u);
+    },
+    ping(cell, color = "#ffd65a") { if (cell != null && cell >= 0 && pings.length < 12) { pings.push({ cell, color, t0: performance.now() }); app.requestDraw(); } },
     float(cell, text, color = "#ff6a50", dx = 0) { fx.push({ cell, text, color, t0: performance.now(), dx }); app.requestDraw(); },
     invalidate() { cache.rev = -1; },
   };

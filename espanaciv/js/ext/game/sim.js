@@ -3,7 +3,7 @@
 // victoria). Sin DOM: la interfaz (ui.js), el dibujo (render.js) y la IA (ai.js) llaman aquí.
 import {
   PEOPLES, PEOPLE_BY_ID, DIFFICULTY, COVER, RELIEF, WATER, RESOURCES, UNITS, BUILDINGS, WONDERS, TECHS, LAST_TECH, MAX_TURNS,
-  GOVS, INVASIONS, EVENTS, TAGS, FAITHS, ERAS, yearOf, yearLabel, IMPROVEMENTS, MINERALS, PLANTS, ROAD,
+  GOVS, INVASIONS, EVENTS, TAGS, FAITHS, ERAS, yearOf, yearLabel, IMPROVEMENTS, MINERALS, PLANTS, ROAD, turnOfYear,
 } from "./rules.js";
 
 // --- utilidades -------------------------------------------------------------------------------------------------
@@ -1281,6 +1281,59 @@ function routeStep(G, M) {
     const a = cityById(G, r.from), b = cityById(G, r.to);
     return a && b && a.owner === r.owner && !atWar(G, a.owner, b.owner) && !G.players[b.owner]?.invader;
   });
+}
+
+// --- ayuda al jugador: qué va a pasar ------------------------------------------------------------------------------
+/** Invasiones históricas que llegarán en los próximos `ahead` turnos: [{inv, turns, places}] */
+export function rumors(G, M, ahead = 6) {
+  const out = [];
+  for (const inv of INVASIONS) {
+    if (G.invDone[inv.id] != null) continue;
+    const t = turnOfYear(inv.year) - G.turn;
+    if (t < 0 || t > ahead) continue;
+    const places = [...new Set(inv.at.map((e) => M.names[M.entries[e]]).filter(Boolean))];
+    out.push({ inv, turns: Math.max(1, t), places, cell: M.entries[inv.at[0]] });
+  }
+  return out;
+}
+/** Lo que va a pasar el próximo turno (y avisos), por orden de importancia: [{icon, text, tone, cell?, city?}] */
+export function forecast(G, M, p) {
+  const P = G.players[p];
+  const out = [];
+  const t = playerTotals(G, M, p);
+  for (const r of rumors(G, M)) out.push({ icon: "🚩", text: `Rumores: ${r.inv.name} entrará por ${r.places.join(" o ") || "la frontera"} en ~${r.turns} turno${r.turns === 1 ? "" : "s"}.`, tone: "bad", cell: r.cell });
+  for (const c of playerCities(G, p)) {
+    const y = cityYield(G, M, c);
+    if (!c.build) { out.push({ icon: "⚠️", text: `${c.name} no está construyendo nada.`, tone: "bad", cell: c.cell, city: c }); continue; }
+    const cost = itemCost(G, c.build, p);
+    if (c.build.kind !== "trade" && c.prod + y.p >= cost) out.push({ icon: "⚙️", text: `${c.name} terminará ${itemName(c.build)}.`, tone: "good", cell: c.cell, city: c });
+    if (y.food < 0 && c.food + y.food < 0) out.push({ icon: "🥀", text: `${c.name} pasará hambre y perderá población.`, tone: "bad", cell: c.cell, city: c });
+    else if (c.pop < y.housing && c.food + y.food >= growthNeed(c.pop)) out.push({ icon: "🌾", text: `${c.name} crecerá a ${c.pop + 1}.`, tone: "good", cell: c.cell, city: c });
+  }
+  if (P.research) {
+    const n = turnsTo(techCost(P, P.research) - P.science, t.s);
+    out.push({ icon: "🔬", text: n === 1 ? `Descubrirás ${TECHS[P.research].name}.` : `${TECHS[P.research].name}: faltan ${n === Infinity ? "—" : n} turnos.`, tone: n === 1 ? "good" : "" });
+  }
+  for (const u of G.units) if (u.owner === p && u.task && u.task.left <= 1) out.push({ icon: "👷", text: `Los obreros terminarán ${u.task.id === "camino" ? "un camino" : IMPROVEMENTS[u.task.id]?.name.toLowerCase()}.`, tone: "good", cell: u.cell });
+  if (t.net < 0) {
+    const n = Math.floor(P.gold / -t.net);
+    out.push({ icon: "💰", text: n <= 0 ? "No puedes pagar las soldadas: se disolverá una unidad." : `Pierdes ${Math.round(-t.net)} 💰 por turno: sin oro en ${n} turnos.`, tone: "bad" });
+  }
+  const tgt = stabilityTarget(G, M, P);
+  if (P.stability < 25) out.push({ icon: "🔥", text: `Estabilidad ${Math.round(P.stability)}: riesgo de revueltas.`, tone: "bad" });
+  else if (tgt < P.stability - 4) out.push({ icon: "⚖️", text: `La estabilidad bajará hacia ${tgt} (guerras, extensión o fe).`, tone: "warn" });
+  return out;
+}
+/** El resultado probable de un ataque, en palabras. */
+export function odds(pv) {
+  if (!pv) return null;
+  if (pv.capture) return { label: "Capturas a los civiles", tone: "good" };
+  if (pv.city && !pv.ranged && pv.toDef >= pv.defHp) return { label: "Tomas la ciudad", tone: "good" };
+  if (pv.toDef >= pv.defHp) return { label: pv.city ? "Dejas la ciudad sin defensas" : "Lo destruyes", tone: "good" };
+  if (!pv.ranged && pv.toAtt >= pv.attHp) return { label: "Tu unidad morirá", tone: "bad" };
+  if (pv.ranged) return { label: "Sin riesgo: ataque a distancia", tone: "good" };
+  const r = pv.toDef / Math.max(1, pv.toAtt);
+  return r > 1.5 ? { label: "Ventaja clara", tone: "good" } : r > 0.75 ? { label: "Combate igualado", tone: "warn" } : { label: "Desventaja: saldrás peor parado", tone: "bad" };
 }
 
 // --- historia: gobierno, estabilidad, invasiones, decisiones y crónica ----------------------------------------------

@@ -157,7 +157,7 @@ function chooseBuild(G, M, city) {
     if (pick) return set("unit", pick);
   }
   const settlers = G.units.filter((u) => u.owner === p && u.type === "colono").length + inProd("colono");
-  if (cities.length < P.aiTargetCities && can("unit", "colono") && settlers < 1 + Math.floor(cities.length / 4) && G.turn < 200) {
+  if (cities.length < (P.aiTargetCities ?? 8) && can("unit", "colono") && settlers < 1 + Math.floor(cities.length / 4) && G.turn < 200) {
     if (cities.length <= 1 || rng(G) < 0.7) return set("unit", "colono");
   }
   const workers = count((u) => UNITS[u.type].worker) + inProd("obreros");
@@ -483,4 +483,24 @@ function actNaval(G, M, u) {
   const home = playerCities(G, p).filter((c) => M.coastal[c.cell]).sort((a, b) => dist(M, a.cell, u.cell) - dist(M, b.cell, u.cell))[0];
   if (home && dist(M, home.cell, u.cell) > 2) stepTowards(G, M, u, home.cell);
   else u.fortified = true;
+}
+
+// --- sugerencias para el jugador (lo que haría la IA), sin tocar la partida ---------------------------------------
+export function suggestBuild(G, M, city) {
+  const keep = city.build, r = G.rng;
+  city.build = null;
+  try { chooseBuild(G, M, city); } catch { /* sin sugerencia */ }
+  const s = city.build;
+  city.build = keep;
+  G.rng = r;
+  return s;
+}
+export function suggestResearch(G, P) {
+  const keep = P.research, r = G.rng;
+  P.research = null;
+  chooseResearch(G, P);
+  const s = P.research;
+  P.research = keep;
+  G.rng = r;
+  return s;
 }
