@@ -158,7 +158,8 @@ SOURCES = [
         "capitales y principales ciudades (tabla 69980), las provincias y el total nacional (69960), contados donde "
         "viven. También el nivel de estudios, la relación con la actividad (paro) y el país de nacimiento de cada municipio.",
         "used_for": ["Rendimientos de ciudades y provincias", "Lentes de estudios, paro y nacidos fuera"],
-        "files": lambda: _ids("tablas", [69980, 69960, 65031]) + _ids("estudios", CENSO_ESTUDIOS)
+        "files": lambda: _ids("tablas", [69980, 69960, 65031, 69979, 69959, 69971, 70371, 66615, 66600, 65033])
+        + [("tablas/65034_nacional.csv", INE_CSV.format(65034), 200_000)] + _ids("estudios", CENSO_ESTUDIOS)
         + _ids("actividad", CENSO_ACTIVIDAD),
     },
     {

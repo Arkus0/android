@@ -33,7 +33,7 @@ def read_manifest(src: str) -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
-def download(src: str, url: str, name: str, force: bool = False, tries: int = 4) -> Path:
+def download(src: str, url: str, name: str, force: bool = False, tries: int = 4, max_bytes: int | None = None) -> Path:
     dest = RAW / src / name
     man = read_manifest(src)
     if dest.exists() and name in man and not force:
@@ -44,8 +44,12 @@ def download(src: str, url: str, name: str, force: bool = False, tries: int = 4)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
             with urllib.request.urlopen(req, timeout=600) as r, open(tmp, "wb") as f:
+                got = 0
                 while chunk := r.read(1 << 20):
                     f.write(chunk)
+                    got += len(chunk)
+                    if max_bytes and got >= max_bytes:
+                        break  # solo el principio del fichero (las filas nacionales van primero)
             break
         except Exception as e:  # noqa: BLE001 - red inestable: reintenta con espera
             print(f"    ! {name}: {e} (intento {k + 1}/{tries})")
@@ -54,11 +58,15 @@ def download(src: str, url: str, name: str, force: bool = False, tries: int = 4)
             time.sleep(2 ** (k + 1))
     tmp.replace(dest)
     data = dest.read_bytes()
+    if max_bytes:  # cortar en la última línea completa
+        data = data[: data.rfind(b"\n") + 1]
+        dest.write_bytes(data)
     man[name] = {
         "url": url,
         "retrieved": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "sha256": hashlib.sha256(data).hexdigest(),
         "bytes": len(data),
+        **({"partial": f"solo los primeros {max_bytes} bytes (filas nacionales)"} if max_bytes else {}),
     }
     manifest_path(src).write_text(json.dumps(man, indent=1, ensure_ascii=False))
     print(f"    ✓ {src}/{name} ({len(data) / 1e6:.1f} MB)")
@@ -71,8 +79,8 @@ def main(argv: list[str]) -> None:
         if want and s["id"] not in want:
             continue
         print(f"· {s['id']}")
-        for name, url in s["files"]():
-            download(s["id"], url, name)
+        for name, url, *opt in s["files"]():
+            download(s["id"], url, name, max_bytes=opt[0] if opt else None)
         if s["id"] == "es_atlas":
             tgz = RAW / "es_atlas" / "es-atlas-0.6.0.tgz"
             out = RAW / "es_atlas" / "package"
