@@ -197,3 +197,10 @@ kbd { font: 600 10px var(--sans); padding: 1px 4px; border-radius: 3px; border: 
 @media (max-width: 700px) {
   .game-bar .gb-gov, .game-bar .gb-stab small { display: none; }
 }
+
+.gm-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.gm-chips i { font-style: normal; font-size: 12px; padding: 1px 7px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(201,164,92,.3); color: var(--ink); }
+.gm-chips i.good { border-color: rgba(120,200,120,.6); color: #b8ecb8; }
+.gm-chips i.bad { border-color: rgba(230,110,90,.6); color: #ffb3a3; }
+.gm-chips i.tag { border-color: var(--gold); color: var(--gold-bright); background: rgba(201,164,92,.15); }
+.gm-choice:disabled { opacity: .45; cursor: not-allowed; }

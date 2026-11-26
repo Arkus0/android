@@ -3,7 +3,7 @@
 // victoria). Sin DOM: la interfaz (ui.js), el dibujo (render.js) y la IA (ai.js) llaman aquí.
 import {
   PEOPLES, PEOPLE_BY_ID, DIFFICULTY, COVER, RELIEF, WATER, RESOURCES, UNITS, BUILDINGS, WONDERS, TECHS, LAST_TECH, MAX_TURNS,
-  GOVS, INVASIONS, EVENTS, TAGS, ERAS, yearOf, yearLabel,
+  GOVS, INVASIONS, EVENTS, TAGS, FAITHS, ERAS, yearOf, yearLabel, IMPROVEMENTS, MINERALS, PLANTS, ROAD,
 } from "./rules.js";
 
 // --- utilidades -------------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ export function buildMap(w, gd) {
       s += y.f * 1.6 + y.p * 1.1 + y.g * 0.8 + (res[j] ? 2 : 0);
     }
     s += fresh[i] ? 6 : 0;
-    s += coastal[i] ? 3 : 0;
+    s += coastal[i] ? 7 : 0;
     M.siteBase[i] = s;
   }
   return M;
@@ -181,7 +181,7 @@ export function createGame(M, { people, rivals = 5, difficulty = "normal", seed 
   const G = {
     v: 1, seed, rng: seed, turn: 1, difficulty, nextId: 1, players: [], cities: [], units: [],
     tileOwner: new Int32Array(M.n).fill(-1), explored: new Uint8Array(M.n), log: [], over: null, wondersBuilt: {},
-    invDone: {}, chron: [], alerts: [],
+    invDone: {}, chron: [], alerts: [], improv: {}, road: {}, routes: [],
   };
   const others = PEOPLES.filter((p) => p.id !== people && M.starts[p.id] != null);
   for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(rng(G) * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
@@ -192,6 +192,7 @@ export function createGame(M, { people, rivals = 5, difficulty = "normal", seed 
       gold: 10, science: 0, research: null, techs: ["agricultura"], culture: 0, war: {}, met: {},
       capital: null, settlers: 0, lastScore: 0, peaceUntil: {}, original: true,
       gov: "jefatura", govTurn: 1, stability: 60, stabMod: 0, mods: {}, temp: [], tags: [], evDone: [], country: null, techBoost: {},
+      faith: "antiguos", evChoice: {}, evLast: {}, lastEv: -99,
     };
     if (pp.id === "celtiberos") P.techs.push("mineria");
     if (pp.id === "argaricos") P.techs.push("mineria", "bronce");
@@ -235,8 +236,14 @@ export const has = (P, tech) => P.techs.includes(tech);
 export const atWar = (G, a, b) => a !== b && !!G.players[a]?.war[b];
 export const unitsAt = (G, c) => G.units.filter((u) => u.cell === c);
 export const cityAt = (G, c) => G.cities.find((x) => x.cell === c) || null;
-export const cityById = (G, id) => G.cities.find((x) => x.id === id) || null;
+let _cbi = null;
+export const cityById = (G, id) => {
+  if (!_cbi || _cbi.G !== G || _cbi.n !== G.cities.length) _cbi = { G, n: G.cities.length, map: new Map(G.cities.map((c) => [c.id, c])) };
+  return _cbi.map.get(id) || null;
+};
 export const isMilitary = (u) => UNITS[u.type].cls !== "civil";
+export const isNaval = (u) => UNITS[u.type].cls === "naval";
+const stackCat = (type) => (UNITS[type].cls === "naval" ? "n" : UNITS[type].cls === "civil" ? "c" : "m");
 export const playerCities = (G, p) => G.cities.filter((c) => c.owner === p);
 export const playerUnits = (G, p) => G.units.filter((u) => u.owner === p);
 export const tileCity = (G, c) => (G.tileOwner[c] >= 0 ? cityById(G, G.tileOwner[c]) : null);
@@ -259,6 +266,12 @@ export function tileYield(G, M, owner, c, city = null) {
     if (city && city.buildings.includes("puerto")) y.f += 1;
   }
   if (P.people === "tartesios" && M.res[c]) y.g += 1;
+  const imp = G.improv?.[c] && IMPROVEMENTS[G.improv[c]];
+  if (imp) {
+    y.f += imp.f || 0; y.p += imp.p || 0; y.g += imp.g || 0;
+    if (imp.up && has(P, imp.up.tech)) { y.f += imp.up.f || 0; y.p += imp.up.p || 0; y.g += imp.up.g || 0; }
+    if (G.improv[c] === "mina" && MINERALS.includes(M.res[c])) y.g += 1;
+  }
   return y;
 }
 const tileScore = (y, needFood) => y.f * (needFood ? 2.2 : 1.3) + y.p * 1.25 + y.g * 0.8 + y.s * 1 + y.c * 0.7;
@@ -335,7 +348,12 @@ export function cityYield(G, M, city) {
   if (P.people === "carpetanos") { if (city.capital) tot.s += 3; sPct += 0.1; }
   // gobierno y decisiones
   const m = pmods(G, P);
-  tot.f += m.cityF; tot.s += m.cityS; tot.c += m.cityC;
+  tot.f += m.cityF; tot.s += m.cityS; tot.c += m.cityC; tot.g += m.cityG;
+  for (const r of G.routes || []) {
+    if (r.from === city.id) { const t = routeYield(G, M, r); tot.g += t.g; tot.s += t.s; }
+    else if (r.to === city.id) tot.g += 1;
+  }
+  if (city.faith && city.faith === P.faith && P.faith !== "laica") tot.c += 1; // cohesión: la ciudad comparte la fe del Estado
   if (M.coastal[city.cell]) tot.g += m.coastG;
   if (city.capital) tot.p += m.capP;
   pPct += m.pPct; gPct += m.gPct; sPct += m.sPct; cPct += m.cPct;
@@ -403,6 +421,7 @@ export function buildOptions(G, M, city) {
   for (const [id, U] of Object.entries(UNITS)) {
     if (U.tech && !has(P, U.tech)) continue;
     if (U.obs && has(P, U.obs)) continue;
+    if (U.cls === "naval" && !M.coastal[city.cell]) continue;
     const o = { kind: "unit", id, cost: itemCost(G, { kind: "unit", id }, city.owner), ok: true };
     if (id === "colono" && city.pop < 2) { o.ok = false; o.why = "Necesita 2 de población"; }
     out.push(o);
@@ -475,6 +494,7 @@ export function foundCity(G, M, u) {
   const city = {
     id: G.nextId++, owner: u.owner, orig: u.owner, name: cityName(G, M, P, u.cell), cell: u.cell, pop: 1, food: 0, prod: 0,
     build: null, buildings: [], wonders: [], hp: 200, culture: 0, tiles: 0, capital: !P.capital, founded: G.turn, hitTurn: -1,
+    faith: P.faith || "antiguos",
   };
   if (!P.capital) { P.capital = city.id; P.capitalCell = city.cell; }
   if (playerWonders(G, u.owner).some((w) => WONDERS[w].freeWalls)) city.buildings.push("murallas");
@@ -529,8 +549,15 @@ let _wc = null;
 const WONDER_CELLS = (M) => (_wc && _wc.M === M ? _wc.set : (_wc = { M, set: new Set(Object.values(M.wonderSites).map((s) => s.cell)) }).set);
 
 function freeSpawn(G, M, city, type) {
-  const mil = UNITS[type].cls !== "civil";
-  const ok = (c) => M.kind[c] === K.LAND && moveCostOf(M, c) < Infinity && !G.units.some((u) => u.cell === c && (isMilitary(u) === mil || u.owner !== city.owner));
+  const cat = stackCat(type);
+  const busy = (c) => G.units.some((u) => u.cell === c && (stackCat(u.type) === cat || u.owner !== city.owner));
+  if (cat === "n") {
+    // los barcos salen al agua junto a la ciudad (o se quedan en el puerto)
+    if (!busy(city.cell)) return city.cell;
+    for (const c of within(M, city.cell, 2)) if ((M.kind[c] === K.COAST || M.kind[c] === K.LAKE || M.kind[c] === K.OCEAN) && !busy(c)) return c;
+    return -1;
+  }
+  const ok = (c) => M.kind[c] === K.LAND && moveCostOf(M, c) < Infinity && !busy(c);
   if (ok(city.cell)) return city.cell;
   for (const c of within(M, city.cell, 3)) if (ok(c) && (G.tileOwner[c] === city.id || G.tileOwner[c] < 0)) return c;
   return -1;
@@ -576,7 +603,8 @@ function processCity(G, M, city, events) {
     if (it.id === "colono" && city.pop < 2) { city.prod = cost; return; }
     const at = freeSpawn(G, M, city, it.id);
     if (at < 0) { city.prod = cost; return; }
-    addUnit(G, city.owner, it.id, at);
+    const nu = addUnit(G, city.owner, it.id, at);
+    nu.home = city.id;
     if (it.id === "colono") { city.pop--; P.settlers++; }
     city.prod -= cost;
     if (P.human) events.push({ msg: `${city.name} ha entrenado ${UNITS[it.id].name}.`, cell: city.cell, kind: "unit", player: city.owner });
@@ -610,7 +638,7 @@ export function availableTechs(P) {
   return Object.keys(TECHS).filter((t) => !has(P, t) && TECHS[t].req.every((r) => has(P, r)));
 }
 // Las tecnologías se encarecen a medida que se conocen más (el ritmo del juego: la imprenta, hacia el turno 200).
-export function techCost(P, t) { return Math.round(TECHS[t].cost * (1.2 + 0.085 * P.techs.length) * (1 - (P.techBoost?.[t] || 0))); }
+export function techCost(P, t) { return Math.round(TECHS[t].cost * (1.2 + 0.14 * P.techs.length) * (1 - (P.techBoost?.[t] || 0))); }
 export function turnsTo(need, per) { return per > 0 ? Math.max(1, Math.ceil(need / per)) : Infinity; }
 
 // --- visibilidad ------------------------------------------------------------------------------------------------
@@ -644,13 +672,23 @@ export function meet(G, a, b) {
 
 // --- movimiento -------------------------------------------------------------------------------------------------
 const waterMov = (G, p) => 3 + (playerWonders(G, p).some((w) => WONDERS[w].embark) ? 1 : 0);
-export function fullMp(G, M, u) { return M.kind[u.cell] === K.LAND ? UNITS[u.type].mov : waterMov(G, u.owner); }
+export function fullMp(G, M, u) { return isNaval(u) || M.kind[u.cell] === K.LAND ? UNITS[u.type].mov : waterMov(G, u.owner); }
 
 /** Coste de entrar en `to` desde `from`, o -1 si no se puede (99 = embarcar/desembarcar: gasta todo). */
-export function enterCost(G, M, u, from, to, { ignoreUnits = false } = {}) {
+export function enterCost(G, M, u, from, to, { ignoreUnits = false, occ = null } = {}) {
+  const blocked = () => (occ ? (occ.get(to) || []).some((o) => o !== u.owner) : G.units.some((o) => o.cell === to && o.owner !== u.owner));
   const k = M.kind[to];
   const P = G.players[u.owner];
   if (k === K.VOID) return -1;
+  if (isNaval(u)) {
+    // los barcos solo navegan (y entran en los puertos propios)
+    if (k === K.LAND) {
+      const c = cityAt(G, to);
+      if (!c || c.owner !== u.owner) return -1;
+    } else if (k === K.OCEAN && !has(P, "cartografia")) return -1;
+    if (!ignoreUnits && blocked()) return -1;
+    return 1;
+  }
   if (k === K.LAND) {
     if (moveCostOf(M, to) === Infinity) return -1;
   } else {
@@ -658,16 +696,25 @@ export function enterCost(G, M, u, from, to, { ignoreUnits = false } = {}) {
     if ((k === K.COAST || k === K.LAKE) && !has(P, "navegacion") && !has(P, "cartografia")) return -1;
   }
   const tc = tileCity(G, to);
-  if (tc && tc.owner !== u.owner && !atWar(G, u.owner, tc.owner)) return -1; // fronteras cerradas en paz
+  // fronteras cerradas en paz (salvo para los mercaderes)
+  if (tc && tc.owner !== u.owner && !atWar(G, u.owner, tc.owner) && !UNITS[u.type].trade) return -1;
   if (tc && tc.cell === to && tc.owner !== u.owner) return -1; // las ciudades ajenas solo se toman atacando
-  if (!ignoreUnits) for (const o of G.units) if (o.cell === to && o.owner !== u.owner) return -1;
+  if (!ignoreUnits && blocked()) return -1;
   const fromLand = M.kind[from] === K.LAND, toLand = k === K.LAND;
   if (fromLand !== toLand) return 99;
-  return toLand ? moveCostOf(M, to) : 1;
+  if (!toLand) return 1;
+  // caminos: mitad de coste (cuarta parte con ferrocarril) entre casillas con camino o ciudad
+  if ((G.road[from] || isCityCell(G, from)) && (G.road[to] || isCityCell(G, to)) && (G.road[from] || G.road[to])) return has(P, "ferrocarril") ? 0.25 : 0.5;
+  return moveCostOf(M, to);
+}
+let _cc = null;
+function isCityCell(G, c) {
+  if (!_cc || _cc.G !== G || _cc.n !== G.cities.length) _cc = { G, n: G.cities.length, set: new Set(G.cities.map((x) => x.cell)) };
+  return _cc.set.has(c);
 }
 function canStop(G, u, c) {
-  const mil = isMilitary(u);
-  return !G.units.some((o) => o !== u && o.cell === c && (o.owner !== u.owner || isMilitary(o) === mil));
+  const cat = stackCat(u.type);
+  return !G.units.some((o) => o !== u && o.cell === c && (o.owner !== u.owner || stackCat(o.type) === cat));
 }
 
 /**
@@ -686,6 +733,9 @@ export function findPath(G, M, u, target, { attack = false, maxTurns = 30 } = {}
   const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
   const start = u.cell;
   const full0 = fullMp(G, M, u);
+  const occ = occupancy(G);
+  const wm = waterMov(G, u.owner), lm = UNITS[u.type].mov, naval = isNaval(u);
+  const movAt = (c) => (naval || M.kind[c] === K.LAND ? lm : wm);
   best[start] = 0; mpAt[start] = u.mp; tAt[start] = 0;
   push(0, start);
   while (heap.length) {
@@ -696,18 +746,18 @@ export function findPath(G, M, u, target, { attack = false, maxTurns = 30 } = {}
       const j = M.nb[c * 6 + d];
       if (j < 0) continue;
       const isTarget = j === target;
-      let cost = enterCost(G, M, u, c, j, { ignoreUnits: attack && isTarget });
+      let cost = enterCost(G, M, u, c, j, { ignoreUnits: attack && isTarget, occ });
       if (cost < 0) {
         if (!(attack && isTarget)) continue;
         cost = 1;
       }
       // las propias unidades se atraviesan, pero no se acaba un turno encima de ellas (simplificado: se permite pasar)
       let t = tAt[c], mp = mpAt[c];
-      const fullHere = M.kind[c] === K.LAND ? UNITS[u.type].mov : waterMov(G, u.owner);
+      const fullHere = movAt(c);
       if (mp <= 0) { t += 1; mp = fullHere; }
       if (t > maxTurns) continue;
       mp = cost <= mp ? mp - cost : 0;
-      const fullNext = M.kind[j] === K.LAND ? UNITS[u.type].mov : waterMov(G, u.owner);
+      const fullNext = movAt(j);
       const kk = key(t, mp, Math.max(fullNext, full0));
       if (kk < best[j]) {
         best[j] = kk; prev[j] = c; mpAt[j] = mp; tAt[j] = t;
@@ -723,15 +773,21 @@ export function findPath(G, M, u, target, { attack = false, maxTurns = 30 } = {}
 }
 
 /** Casillas alcanzables este turno (para pintarlas). */
+function occupancy(G) {
+  const occ = new Map();
+  for (const o of G.units) { const l = occ.get(o.cell); if (l) l.push(o.owner); else occ.set(o.cell, [o.owner]); }
+  return occ;
+}
 export function reachable(G, M, u) {
   const out = new Map();
   if (u.mp <= 0) return out;
+  const occ = occupancy(G);
   const q = [[u.cell, u.mp]];
   const bestMp = new Map([[u.cell, u.mp]]);
   while (q.length) {
     const [c, mp] = q.shift();
     for (const j of neighbours(M, c)) {
-      const cost = enterCost(G, M, u, c, j);
+      const cost = enterCost(G, M, u, c, j, { occ });
       if (cost < 0) continue;
       const left = cost <= mp ? mp - cost : 0;
       if ((bestMp.get(j) ?? -1) >= left) continue;
@@ -758,6 +814,7 @@ export function moveAlong(G, M, u, path) {
     u.cell = to;
     u.mp = cost <= u.mp ? u.mp - cost : 0;
     u.fortified = false;
+    u.task = null;
     u.acted = true;
     steps.push(to);
     i++;
@@ -786,7 +843,7 @@ export function unitStr(G, u, { ranged = false } = {}) {
 function defMods(G, M, u, vs) {
   const P = G.players[u.owner];
   let m = 0;
-  if (M.kind[u.cell] !== K.LAND) return -Math.max(0, unitStr(G, u) - 8); // embarcada: muy vulnerable
+  if (M.kind[u.cell] !== K.LAND) return isNaval(u) ? 0 : -Math.max(0, unitStr(G, u) - 8); // embarcada: muy vulnerable
   m += defenseBonus(M, u.cell);
   if (u.fortified) m += 4;
   if (P.people === "vascones" && M.relief[u.cell] >= 1) m += 5;
@@ -819,6 +876,7 @@ export function canAttack(G, M, u, cell) {
   if (!t) return false;
   const d = dist(M, u.cell, cell);
   if (U.rstr) return d <= U.range && d >= 1;
+  if (U.cls === "naval") return d === 1 && M.kind[cell] !== K.LAND; // espolonazo: solo a otros barcos
   if (M.kind[u.cell] !== K.LAND) return false; // no se ataca desde el agua
   if (d !== 1) return false;
   if (t.city && U.cls === "explorador") return false;
@@ -876,7 +934,7 @@ export function attack(G, M, u, cell) {
       u.hp -= toAtt;
       out.toAtt = toAtt;
       if (u.hp <= 0) { G.units = G.units.filter((x) => x !== u); out.died = true; }
-      else if (city.hp <= 0 && UNITS[u.type].cls !== "explorador") {
+      else if (city.hp <= 0 && UNITS[u.type].cls !== "explorador" && !isNaval(u)) {
         captureCity(G, M, city, u.owner);
         u.cell = city.cell;
         out.cityTaken = city;
@@ -1007,7 +1065,7 @@ export function startTurn(G, M, p) {
       u.hp = Math.min(100, u.hp + (inCity ? 25 : own ? 15 : 10));
     }
     u.acted = false;
-    u.mp = fullMp(G, M, u);
+    u.mp = u.task ? 0 : fullMp(G, M, u); // los obreros con tarea siguen trabajando
   }
   for (const c of G.cities) if (c.owner === p && c.hitTurn < G.turn - 1) c.hp = Math.min(cityMaxHp(c), c.hp + 20);
 }
@@ -1069,6 +1127,8 @@ export function endRound(G, M) {
     if (!P.invader && !playerCities(G, P.idx).length && !G.units.some((u) => u.owner === P.idx && u.type === "colono") && G.turn > 1) eliminate(G, P.idx);
     P.lastScore = score(G, P.idx);
   }
+  workStep(G, M, events);
+  routeStep(G, M);
   for (const e of events) logEvent(G, e.msg, e);
   stabilityStep(G, M);
   invasionStep(G, M);
@@ -1101,6 +1161,128 @@ export function checkVictory(G, M) {
 }
 
 // --- guardar / cargar ---------------------------------------------------------------------------------------------
+// --- obreros, caminos y rutas comerciales ----------------------------------------------------------------------
+function impWhere(G, M, c, where) {
+  if (M.kind[c] !== K.LAND || moveCostOf(M, c) === Infinity) return false;
+  const cv = COVER[M.cover[c]] || {};
+  const r = M.res[c];
+  if (where === "llano") return M.relief[c] <= 1 && !cv.forest && !cv.marsh && !MINERALS.includes(r) && !PLANTS.includes(r) && M.cover[c] !== 10 && M.cover[c] !== 11;
+  if (where === "mina") return M.relief[c] >= 1 || MINERALS.includes(r);
+  if (where === "bosque") return !!cv.forest;
+  if (where === "cultivo") return PLANTS.includes(r);
+  if (where === "pasto") return M.cover[c] === 5 || ["ovejas", "ganado", "caballos"].includes(r);
+  return false;
+}
+/** Qué puede construir un obrero en su casilla: [{id, name, emoji, turns, ok, why, road?}] */
+export function workOptions(G, M, u) {
+  const P = G.players[u.owner];
+  const c = u.cell;
+  const out = [];
+  const own = tileOwnerPlayer(G, c) === u.owner;
+  const isCity = isCityCell(G, c);
+  for (const [id, I] of Object.entries(IMPROVEMENTS)) {
+    if (!impWhere(G, M, c, I.where)) continue;
+    const o = { id, name: I.name, emoji: I.emoji, turns: I.turns, ok: true };
+    if (I.tech && !has(P, I.tech)) { o.ok = false; o.why = `Requiere ${TECHS[I.tech].name}`; }
+    else if (!own) { o.ok = false; o.why = "Solo en tu territorio"; }
+    else if (isCity) { o.ok = false; o.why = "No en el centro de una ciudad"; }
+    else if (G.improv[c] === id) { o.ok = false; o.why = "Ya está construida"; }
+    out.push(o);
+  }
+  if (M.kind[c] === K.LAND && !isCity) {
+    const o = { id: "camino", name: ROAD.name, emoji: ROAD.emoji, turns: ROAD.turns, ok: true, road: true };
+    if (!has(P, ROAD.tech)) { o.ok = false; o.why = `Requiere ${TECHS[ROAD.tech].name}`; }
+    else if (G.road[c]) { o.ok = false; o.why = "Ya hay camino"; }
+    out.push(o);
+  }
+  return out;
+}
+export function startWork(G, M, u, id) {
+  const o = workOptions(G, M, u).find((x) => x.id === id && x.ok);
+  if (!o) return false;
+  u.task = { id, left: o.turns };
+  u.mp = 0;
+  u.acted = true;
+  u.goto = null;
+  return true;
+}
+function workStep(G, M, events) {
+  for (const u of G.units) {
+    if (!u.task) continue;
+    u.task.left -= 1;
+    if (u.task.left > 0) continue;
+    const id = u.task.id;
+    u.task = null;
+    if (id === "camino") G.road[u.cell] = 1;
+    else {
+      G.improv[u.cell] = id;
+      if (G.players[u.owner]?.human) events.push({ msg: `Obreros: ${IMPROVEMENTS[id].name.toLowerCase()} terminados.`, cell: u.cell, kind: "build", player: u.owner });
+    }
+  }
+}
+/** Construye caminos entre la capital y las ciudades de p (efecto de algunos eventos). */
+export function buildRoads(G, M, p) {
+  const P = G.players[p];
+  const cap = cityById(G, P.capital);
+  if (!cap) return 0;
+  let n = 0;
+  const walker = { owner: p, type: "obreros", cell: cap.cell, mp: 99, hp: 100 };
+  for (const c of playerCities(G, p)) {
+    if (c === cap) continue;
+    walker.cell = cap.cell;
+    const path = findPath(G, M, walker, c.cell, { maxTurns: 60 });
+    if (!path) continue;
+    for (const cell of path.path) if (M.kind[cell] === K.LAND && !G.road[cell]) { G.road[cell] = 1; n++; }
+  }
+  return n;
+}
+
+export function maxRoutes(G, P) {
+  return 1 + Math.floor(playerCities(G, P.idx).length / 3) + ["banca", "economia", "ferrocarril"].filter((t) => has(P, t)).length + (P.mods?.routes || 0);
+}
+export const routesOf = (G, p) => (G.routes || []).filter((r) => r.owner === p);
+export function routeYield(G, M, r) {
+  const a = cityById(G, r.from), b = cityById(G, r.to);
+  if (!a || !b) return { g: 0, s: 0 };
+  const foreign = a.owner !== b.owner;
+  let g = 2 + Math.floor(dist(M, a.cell, b.cell) / 6) + Math.floor(b.pop / 3);
+  if (foreign) g *= 1.5;
+  return { g: Math.round(g), s: foreign ? 1 + Math.floor(eraOf(G.players[a.owner]) / 2) : 0 };
+}
+/** Ciudades con las que estos mercaderes pueden abrir ruta ahora mismo (junto a ellos). */
+export function tradeTargets(G, M, u) {
+  if (!UNITS[u.type].trade) return [];
+  const P = G.players[u.owner];
+  const home = cityById(G, u.home) || playerCities(G, u.owner)[0];
+  if (!home) return [];
+  const mine = routesOf(G, u.owner);
+  const out = [];
+  for (const c of G.cities) {
+    if (c === home || dist(M, c.cell, u.cell) > 1) continue;
+    const Q = G.players[c.owner];
+    if (c.owner !== u.owner && (atWar(G, u.owner, c.owner) || Q.invader)) continue;
+    if (mine.some((r) => r.from === home.id && r.to === c.id)) continue;
+    out.push({ city: c, from: home, yield: routeYield(G, M, { from: home.id, to: c.id }), full: mine.length >= maxRoutes(G, P) });
+  }
+  return out;
+}
+export function openRoute(G, M, u, cityId) {
+  const t = tradeTargets(G, M, u).find((x) => x.city.id === cityId);
+  if (!t || t.full) return false;
+  G.routes.push({ owner: u.owner, from: t.from.id, to: cityId, since: G.turn });
+  G.units = G.units.filter((x) => x !== u);
+  const P = G.players[u.owner];
+  logEvent(G, `🧳 Ruta comercial entre ${t.from.name} y ${t.city.name}.`, { player: u.owner, cell: t.city.cell, kind: "trade" });
+  if (P.human) chron(G, u.owner, `Abrís una ruta comercial entre ${t.from.name} y ${t.city.name}${t.city.owner !== u.owner ? ` (${G.players[t.city.owner].name})` : ""}.`, "comercio");
+  return true;
+}
+function routeStep(G, M) {
+  G.routes = (G.routes || []).filter((r) => {
+    const a = cityById(G, r.from), b = cityById(G, r.to);
+    return a && b && a.owner === r.owner && !atWar(G, a.owner, b.owner) && !G.players[b.owner]?.invader;
+  });
+}
+
 // --- historia: gobierno, estabilidad, invasiones, decisiones y crónica ----------------------------------------------
 export function chron(G, p, text, kind = "info") {
   if (!G.players[p]?.human) return;
@@ -1111,7 +1293,7 @@ export function countryName(P) { return P.country || P.name; }
 /** Modificadores de un pueblo: gobierno + decisiones permanentes + decisiones temporales en vigor. */
 export function pmods(G, P) {
   const gov = GOVS[P.gov] || GOVS.jefatura;
-  const m = { pPct: 0, gPct: 0, sPct: 0, cPct: 0, capP: 0, att: 0, def: 0, defPct: 0, stab: 0, cityF: 0, cityS: 0, cityC: 0, coastG: 0, drought: 0 };
+  const m = { pPct: 0, gPct: 0, sPct: 0, cPct: 0, capP: 0, att: 0, def: 0, defPct: 0, stab: 0, cityF: 0, cityS: 0, cityC: 0, cityG: 0, coastG: 0, drought: 0 };
   const add = (o) => { if (o) for (const k in o) if (k in m && typeof o[k] === "number") m[k] += o[k]; };
   add(gov);
   add(P.mods);
@@ -1133,14 +1315,35 @@ export function stabilityTarget(G, M, P) {
   t += Math.min(15, b);
   for (const w of playerWonders(G, P.idx)) t += WONDERS[w]?.stab || 0;
   t -= Math.max(0, cs.length - 6) * 2 * m.sprawl;
+  t -= faithFriction(P, cs);
   let wars = 0;
   for (const Q of G.players) if (Q.alive && atWar(G, P.idx, Q.idx)) wars += Q.invader ? 0.5 : 1;
   t -= wars * 4 * m.weary;
   return Math.max(0, Math.min(100, Math.round(t)));
 }
+export function faithFriction(P, cs) {
+  if (P.faith === "laica") return 0;
+  const other = cs.filter((c) => c.faith && c.faith !== P.faith).length;
+  const k = P.tags?.includes("tolerante") ? 0.5 : 1.5;
+  return Math.min(15, other * k);
+}
+function faithStep(G, P) {
+  if (P.faith === "laica") return;
+  const tol = P.tags?.includes("tolerante");
+  for (const c of playerCities(G, P.idx)) {
+    if (!c.faith) c.faith = P.faith;
+    if (c.faith === P.faith) continue;
+    let pr = 0.03 + 0.03 * c.buildings.filter((b) => b === "templo" || b === "catedral").length;
+    if (P.tags?.includes("confesional")) pr += 0.03;
+    if (tol) pr *= 0.5;
+    if (rng(G) < pr) c.faith = P.faith;
+  }
+}
 function stabilityStep(G, M) {
   for (const P of G.players) {
-    if (!P.alive || P.invader) continue;
+    if (!P.alive) continue;
+    faithStep(G, P);
+    if (P.invader) continue;
     P.temp = (P.temp || []).filter((t) => t.until >= G.turn);
     const tgt = stabilityTarget(G, M, P);
     const d = Math.max(-3, Math.min(3, tgt - P.stability));
@@ -1174,6 +1377,7 @@ function newInvader(G, o) {
     gold: 50, science: 0, research: null, techs: o.techs, culture: 0, war: {}, met: {}, capital: null, settlers: 0, lastScore: 0,
     peaceUntil: {}, original: false, gov: "jefatura", stability: 60, stabMod: 0, mods: {}, temp: [], tags: [], evDone: [],
     country: null, techBoost: {}, expires: G.turn + (o.turns || 30),
+    faith: o.faith || "antiguos", evChoice: {}, evLast: {}, lastEv: -99,
   };
   if (!o.rebel) P.mods.att = 4; // ejércitos veteranos
   G.players.push(P);
@@ -1214,7 +1418,7 @@ function spawnInvasion(G, M, inv) {
   }
   const centers = inv.at.map((e) => M.entries[e]).filter((c) => c != null);
   if (!centers.length) return;
-  const P = newInvader(G, { id: inv.id, name: inv.short, color: inv.color, ink: inv.ink, invasion: inv.id, settle: inv.settle, techs });
+  const P = newInvader(G, { id: inv.id, name: inv.short, color: inv.color, ink: inv.ink, invasion: inv.id, settle: inv.settle, techs, faith: inv.faith });
   placeUnits(G, M, P, types, centers);
   for (const Q of originals) { quietWar(G, P, Q); }
   for (const Q of G.players) if (Q.alive && Q.settled && Q.idx !== P.idx) { quietWar(G, P, Q); }
@@ -1228,7 +1432,7 @@ function revolt(G, M, P) {
   const cs = playerCities(G, P.idx).filter((c) => !c.capital);
   if (!cs.length) return;
   const city = cs[Math.floor(rng(G) * cs.length)];
-  const R = newInvader(G, { id: `rebeldes-${city.id}`, name: `Rebeldes de ${city.name}`, color: "#3e2723", ink: "#fff", rebel: true, settle: `República de ${city.name}`, techs: [...P.techs], turns: 15 });
+  const R = newInvader(G, { id: `rebeldes-${city.id}`, name: `Rebeldes de ${city.name}`, color: "#3e2723", ink: "#fff", rebel: true, settle: `República de ${city.name}`, techs: [...P.techs], turns: 15, faith: city.faith || P.faith });
   const melee = bestUnitOf(P.techs, "melee", "guerreros");
   placeUnits(G, M, R, [melee, melee, melee], [city.cell]);
   quietWar(G, R, P);
@@ -1303,77 +1507,226 @@ export function setCountry(G, P, name) {
   if (P.human) chron(G, P.idx, `Vuestro país pasa a llamarse ${n}.`, "nombre");
 }
 
-// decisiones
-function eventOk(G, M, P, ev, y) {
-  if (y < ev.from || y > ev.to || P.evDone.includes(ev.id)) return false;
-  const cs = playerCities(G, P.idx);
-  if (!cs.length) return false;
-  if (ev.coastal && !cs.some((c) => M.coastal[c.cell])) return false;
-  if (ev.minCities && cs.length < ev.minCities) return false;
-  if (ev.needInvader && !G.players.some((Q) => Q.alive && Q.invasion === ev.needInvader)) return false;
-  return true;
+// decisiones -------------------------------------------------------------------------------------------------
+function closeRivals(G, M, P) {
+  // pueblos originales vivos, en orden de cercanía (para el jugador, solo los conocidos)
+  const mine = playerCities(G, P.idx);
+  const out = [];
+  for (const Q of G.players) {
+    if (!Q.alive || Q.idx === P.idx || Q.invader) continue;
+    if (P.human && !P.met[Q.idx]) continue;
+    let d = Infinity;
+    for (const a of mine) for (const b of playerCities(G, Q.idx)) d = Math.min(d, dist(M, a.cell, b.cell));
+    if (d === Infinity) continue;
+    out.push({ Q, d });
+  }
+  return out.sort((x, y) => x.d - y.d);
 }
-/** El próximo evento que le toca vivir a p este turno (o null). Probabilístico salvo el último turno de su ventana. */
+function hasRes(G, M, P, type) {
+  const ids = new Set(playerCities(G, P.idx).map((c) => c.id));
+  for (let i = 0; i < M.n; i++) if (M.res[i] === type && ids.has(G.tileOwner[i])) return true;
+  return false;
+}
+const any = (list, f) => [].concat(list).some(f);
+function eventCtx(G, M, P, ev, y) {
+  if (y < ev.from || y > ev.to) return null;
+  if (ev.repeat) { if (G.turn - (P.evLast[ev.id] ?? -999) < ev.repeat) return null; }
+  else if (P.evDone.includes(ev.id)) return null;
+  if (ev.human && !P.human) return null;
+  const cs = playerCities(G, P.idx);
+  if (!cs.length) return null;
+  if (ev.coastal && !cs.some((c) => M.coastal[c.cell])) return null;
+  if (ev.river && !cs.some((c) => M.river[c.cell])) return null;
+  if (ev.minCities && cs.length < ev.minCities) return null;
+  if (ev.maxCities && cs.length > ev.maxCities) return null;
+  if (ev.minPop && cs.reduce((x, c) => x + c.pop, 0) < ev.minPop) return null;
+  if (ev.people && !any(ev.people, (x) => x === P.people)) return null;
+  if (ev.notPeople && any(ev.notPeople, (x) => x === P.people)) return null;
+  if (ev.tags && !any(ev.tags, (t) => P.tags.includes(t))) return null;
+  if (ev.notTags && any(ev.notTags, (t) => P.tags.includes(t))) return null;
+  if (ev.gov && !any(ev.gov, (g) => g === P.gov)) return null;
+  if (ev.notGov && any(ev.notGov, (g) => g === P.gov)) return null;
+  if (ev.faith && !any(ev.faith, (f) => f === P.faith)) return null;
+  if (ev.notFaith && any(ev.notFaith, (f) => f === P.faith)) return null;
+  if (ev.mixed && !cs.some((c) => c.faith && c.faith !== P.faith)) return null;
+  if (ev.stabBelow != null && P.stability >= ev.stabBelow) return null;
+  if (ev.stabAbove != null && P.stability <= ev.stabAbove) return null;
+  if (ev.tech && !has(P, ev.tech)) return null;
+  if (ev.noTech && has(P, ev.noTech)) return null;
+  if (ev.wonder && !playerWonders(G, P.idx).includes(ev.wonder)) return null;
+  if (ev.res && !hasRes(G, M, P, ev.res)) return null;
+  if (ev.after) {
+    const [id, ch] = [].concat(ev.after);
+    if (P.evChoice[id] == null || (ch != null && P.evChoice[id] !== ch)) return null;
+  }
+  if (ev.notAfter && P.evChoice[ev.notAfter] != null) return null;
+  if (ev.needInvader && !G.players.some((Q) => Q.alive && Q.invasion === ev.needInvader)) return null;
+  if (ev.settled && !G.players.some((Q) => Q.alive && Q.settled && Q.invasion === ev.settled)) return null;
+  const wars = G.players.filter((Q) => Q.alive && atWar(G, P.idx, Q.idx));
+  if (ev.war && !wars.some((Q) => !Q.invader)) return null;
+  if (ev.invasionWar && !wars.some((Q) => Q.invader || Q.settled)) return null;
+  const ctx = {};
+  if (ev.neighbor || ev.weaker) {
+    const rivals = closeRivals(G, M, P).filter((r) => r.d <= 30);
+    let pick = rivals[0];
+    if (ev.weaker) {
+      const me = score(G, P.idx);
+      pick = rivals.find((r) => !atWar(G, P.idx, r.Q.idx) && r.d <= 20 && score(G, r.Q.idx) < me * ev.weaker && !r.Q.human);
+    }
+    if (!pick) return null;
+    ctx.neighbor = pick.Q.idx;
+  }
+  return ctx;
+}
+/** Texto del evento con sus marcas ({vecino}, {capital}, {pais}) resueltas. */
+export function eventText(G, P, ev, ctx = {}) {
+  const cap = cityById(G, P.capital);
+  return String(ev.text)
+    .replace(/\{vecino\}/g, ctx.neighbor != null ? G.players[ctx.neighbor].name : "vecinos")
+    .replace(/\{capital\}/g, cap?.name || "la capital")
+    .replace(/\{pais\}/g, countryName(P));
+}
+/** El próximo evento que le toca vivir a p este turno: {ev, ctx, text} o null. */
 export function nextEvent(G, M, p) {
   const P = G.players[p];
   if (!P?.alive || P.invader) return null;
   const y = yearOf(G.turn);
+  const ok = [];
   for (const ev of EVENTS) {
-    if (!eventOk(G, M, P, ev, y)) continue;
-    const last = yearOf(G.turn + 1) > ev.to;
-    if (last || rng(G) < 0.35) return ev;
+    const ctx = eventCtx(G, M, P, ev, y);
+    if (ctx) ok.push({ ev, ctx });
   }
-  return null;
+  if (!ok.length) return null;
+  // los que se acaban este turno van primero (los recurrentes nunca obligan)
+  const forced = ok.find(({ ev }) => !ev.repeat && yearOf(G.turn + 1) > ev.to);
+  let pick = forced;
+  if (!pick) {
+    if (G.turn - (P.lastEv ?? -99) < 2) return null;
+    if (rng(G) > 0.45) return null;
+    const total = ok.reduce((a, { ev }) => a + (ev.chance ?? 1), 0);
+    let r = rng(G) * total;
+    for (const o of ok) { r -= o.ev.chance ?? 1; if (r <= 0) { pick = o; break; } }
+    pick ??= ok[0];
+  }
+  return { ev: pick.ev, ctx: pick.ctx, text: eventText(G, P, pick.ev, pick.ctx) };
 }
-export function applyEffects(G, M, P, eff) {
+/** Cuánto oro, ciencia o cultura valen n turnos de la economía de p (mínimo razonable al principio). */
+export function turnsOf(G, M, p, key, n) {
+  const t = playerTotals(G, M, p);
+  const per = key === "g" ? Math.max(6, t.g) : key === "s" ? Math.max(4, t.s) : Math.max(3, t.c);
+  return Math.round(per * n);
+}
+function bestOfClassFor(P, spec) {
+  if (!spec.startsWith("best:")) return spec;
+  return bestUnitOf(P.techs, spec.slice(5), spec === "best:montada" ? "jinetes" : spec === "best:ranged" ? "honderos" : spec === "best:asedio" ? "catapulta" : "guerreros");
+}
+export function canAfford(G, M, p, eff) {
+  if (!eff?.goldT || eff.goldT > 0) return true;
+  return G.players[p].gold >= turnsOf(G, M, p, "g", -eff.goldT);
+}
+export function applyEffects(G, M, P, eff, ctx = {}) {
   if (!eff) return;
-  if (eff.gold) P.gold = Math.max(0, P.gold + eff.gold);
-  if (eff.science) P.science += eff.science;
-  if (eff.culture) P.culture += eff.culture;
+  const p = P.idx;
+  if (eff.goldT) P.gold = Math.max(0, P.gold + Math.sign(eff.goldT) * turnsOf(G, M, p, "g", Math.abs(eff.goldT)));
+  if (eff.sciT) P.science += turnsOf(G, M, p, "s", eff.sciT);
+  if (eff.cultT) {
+    const c = turnsOf(G, M, p, "c", eff.cultT);
+    P.culture += c;
+    const cap = cityById(G, P.capital);
+    if (cap) cap.culture += c; // la cultura extra ensancha las fronteras de la capital
+  }
   if (eff.tech && !has(P, eff.tech)) P.techs.push(eff.tech);
   for (const t of [].concat(eff.techPart || [])) if (!has(P, t)) P.techBoost[t] = Math.max(P.techBoost[t] || 0, 0.5);
   if (eff.stab) { P.stability = Math.max(0, Math.min(100, P.stability + eff.stab)); P.stabMod = (P.stabMod || 0) + eff.stab * 0.5; }
   if (eff.mods) for (const [k, v] of Object.entries(eff.mods)) P.mods[k] = (P.mods[k] || 0) + v;
   if (eff.temp) P.temp.push({ until: G.turn + eff.temp.turns, mods: eff.temp.mods });
-  if (eff.plague) for (const c of playerCities(G, P.idx)) c.pop = Math.max(1, Math.round(c.pop * (1 - eff.plague)));
+  if (eff.plague) for (const c of playerCities(G, p)) c.pop = Math.max(1, Math.round(c.pop * (1 - eff.plague)));
   if (eff.droughtHit) {
     const hit = 0.08 * eff.droughtHit * (1 + (pmods(G, P).drought || 0));
-    for (const c of playerCities(G, P.idx)) c.pop = Math.max(1, Math.round(c.pop * (1 - hit)));
+    for (const c of playerCities(G, p)) c.pop = Math.max(1, Math.round(c.pop * (1 - hit)));
   }
   if (eff.gov) {
     const g = [].concat(eff.gov).find((x) => availableGovs(P).includes(x));
     if (g) setGov(G, P, g, { free: true });
   }
+  if (eff.faith && FAITHS[eff.faith]) {
+    P.faith = eff.faith;
+    if (P.human) chron(G, p, `Nueva fe oficial: ${FAITHS[eff.faith].name}.`, "fe");
+  }
+  if (eff.convert) for (const c of playerCities(G, p)) c.faith = P.faith;
   if (eff.peaceWith) {
     const Q = G.players.find((x) => x.alive && x.invasion === eff.peaceWith);
-    if (Q && atWar(G, P.idx, Q.idx)) {
-      delete P.war[Q.idx]; delete Q.war[P.idx];
-      P.peaceUntil[Q.idx] = G.turn + 40; Q.peaceUntil[P.idx] = G.turn + 40;
-      for (const u of [...G.units]) if (u.owner === Q.idx && tileOwnerPlayer(G, u.cell) === P.idx) G.units = G.units.filter((x) => x !== u);
+    if (Q && atWar(G, p, Q.idx)) {
+      delete P.war[Q.idx]; delete Q.war[p];
+      P.peaceUntil[Q.idx] = G.turn + 40; Q.peaceUntil[p] = G.turn + 40;
+      for (const u of [...G.units]) if (u.owner === Q.idx && tileOwnerPlayer(G, u.cell) === p) G.units = G.units.filter((x) => x !== u);
     }
   }
+  if (eff.peaceAll) for (const Q of G.players) if (Q.alive && !Q.invader && atWar(G, p, Q.idx) && !Q.human) makePeace(G, M, p, Q.idx);
+  if (eff.warNeighbor && ctx.neighbor != null && !atWar(G, p, ctx.neighbor)) declareWar(G, p, ctx.neighbor);
+  if (eff.union && ctx.neighbor != null) unite(G, M, P, G.players[ctx.neighbor]);
+  if (eff.rebels) for (let k = 0; k < eff.rebels; k++) revolt(G, M, P);
+  const cap = cityById(G, P.capital);
+  if (eff.pop && cap) cap.pop += eff.pop;
+  if (eff.building && cap && !cap.buildings.includes(eff.building) && BUILDINGS[eff.building]) {
+    cap.buildings.push(eff.building);
+    if (eff.building === "murallas") cap.hp = cityMaxHp(cap);
+  }
+  if (eff.units && cap) {
+    const types = [];
+    for (const [spec, n] of eff.units) for (let k = 0; k < n; k++) types.push(bestOfClassFor(P, spec));
+    placeUnits(G, M, P, types, [cap.cell]);
+  }
+  if (eff.roads) buildRoads(G, M, p);
   if (eff.tag) P.tags.push(eff.tag);
 }
-export function resolveEvent(G, M, p, evId, choice, { name } = {}) {
+/** Unión de dos coronas: el pueblo Q pasa a formar parte de P (ciudades, unidades y tierras). */
+function unite(G, M, P, Q) {
+  if (!Q || !Q.alive || Q.human) return;
+  for (const c of G.cities) if (c.owner === Q.idx) { c.owner = P.idx; c.capital = false; }
+  for (const u of G.units) if (u.owner === Q.idx) u.owner = P.idx;
+  for (const R of G.players) { delete R.war[Q.idx]; }
+  Q.war = {};
+  Q.alive = false;
+  Q.annexedBy = P.idx;
+  logEvent(G, `👑 Los ${Q.name} se unen a ${countryName(P)} por un matrimonio real.`, { player: P.idx, kind: "gov", all: true });
+  if (P.human) chron(G, P.idx, `Los ${Q.name} se unen a vuestro país.`, "union");
+}
+export function resolveEvent(G, M, p, evId, choice, { name, ctx = {}, keep = false } = {}) {
   const P = G.players[p];
   const ev = EVENTS.find((e) => e.id === evId);
-  if (!ev || P.evDone.includes(evId)) return;
-  P.evDone.push(evId);
+  if (!ev) return;
+  if (ev.repeat) P.evLast[evId] = G.turn;
+  else if (P.evDone.includes(evId)) return;
+  else P.evDone.push(evId);
+  P.lastEv = G.turn;
   if (ev.name) {
-    if (!P.original && !name) return; // los pueblos nacidos de una invasión conservan su nombre
+    if (keep) return;
+    if (!P.original && !name) return;
     const sug = nameSuggestions(G, M, P);
     setCountry(G, P, name || sug[Math.floor(rng(G) * Math.min(3, sug.length))]);
     return;
   }
   const ch = ev.choices[choice] || ev.choices[0];
-  applyEffects(G, M, P, ch.eff);
-  if (P.human) chron(G, p, `${ev.title}: ${ch.label.toLowerCase()}.`, "decision");
+  P.evChoice[evId] = choice;
+  applyEffects(G, M, P, ch.eff, ctx);
+  if (P.human) chron(G, p, `${ev.title}: ${ch.label.charAt(0).toLowerCase()}${ch.label.slice(1)}.`, ev.crisis ? "crisis" : "decision");
 }
 export function aiEvents(G, M, p) {
+  const P = G.players[p];
+  // la IA bautiza su país al llegar a la Edad Media y lo rebautiza en la Edad Moderna
+  const y = yearOf(G.turn);
+  if (P.original && ((!P.country && y >= 600) || (P.country && !P.renamed && y >= 1750))) {
+    if (P.country) P.renamed = true;
+    const sug = nameSuggestions(G, M, P);
+    setCountry(G, P, sug[Math.floor(rng(G) * Math.min(3, sug.length))]);
+  }
   for (let k = 0; k < 2; k++) {
-    const ev = nextEvent(G, M, p);
-    if (!ev) return;
-    resolveEvent(G, M, p, ev.id, Math.floor(rng(G) * ev.choices.length));
+    const o = nextEvent(G, M, p);
+    if (!o) return;
+    const choices = o.ev.choices.map((c, i) => i).filter((i) => canAfford(G, M, p, o.ev.choices[i].eff));
+    const pick = choices.length ? choices[Math.floor(rng(G) * choices.length)] : 0;
+    resolveEvent(G, M, p, o.ev.id, pick, { ctx: o.ctx });
   }
 }
 
@@ -1399,13 +1752,14 @@ export function altSpain(G, M, p = 0) {
   if (fr) out.push(fr.settled ? "Napoleón logró imponer un reino en parte de la Península." : "La Grande Armée fue derrotada.");
   if (tags.length) out.push(`Fue un país ${tags.slice(0, 3).map((t) => t.toLowerCase()).join(", ").replace(/, ([^,]*)$/, " y $1")}.`);
   const now = yearLabel(Math.min(G.turn, MAX_TURNS));
+  out.push(`Su fe oficial: ${FAITHS[P.faith]?.name.toLowerCase() || "los dioses antiguos"}.`);
   out.push(`En ${now} es una ${GOVS[P.gov]?.name.toLowerCase() || "jefatura"} con ${cs.length} ciudades${cap ? ` y capital en ${cap.name}` : ""}, que ocupa el ${Math.round(share * 100)} % de la Península.`);
   const wonders = playerWonders(G, p).map((w) => WONDERS[w].name);
   if (wonders.length) out.push(`Su patrimonio incluye ${wonders.slice(0, 5).join(", ")}${wonders.length > 5 ? " y más" : ""}.`);
   const rivals = G.players.filter((Q) => Q.alive && Q.idx !== p && !Q.invader).map((Q) => countryName(Q));
   if (rivals.length) out.push(`Comparte la Península con ${rivals.slice(0, 6).join(", ")}.`);
   else out.push("Es el único Estado de la Península.");
-  return { name: countryName(P), gov: GOVS[P.gov]?.name, capital: cap?.name, cities: cs.length, pop, share, tags, wonders, story: out, chron: G.chron };
+  return { name: countryName(P), gov: GOVS[P.gov]?.name, faith: FAITHS[P.faith]?.name, capital: cap?.name, cities: cs.length, pop, share, tags, wonders, story: out, chron: G.chron };
 }
 
 const STORE = "espanaciv.hispania.v1";
@@ -1418,6 +1772,7 @@ export function deserialize(txt, M) {
   o.tileOwner = Int32Array.from(o.tileOwner);
   const bits = Uint8Array.from(atob(o.explored), (ch) => ch.charCodeAt(0));
   o.explored = unpackBits(bits, M.n);
+  o.improv ??= {}; o.road ??= {}; o.routes ??= [];
   return o;
 }
 function packBits(a) {

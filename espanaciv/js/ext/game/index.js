@@ -71,7 +71,7 @@ export function install(app) {
     const s = Math.max(app.cam.scale, scale ?? 0.9);
     app.flyTo(grid.cx(cell), grid.cy(cell), s, 450);
   };
-  const needsOrders = (u) => u.owner === 0 && u.mp > 0 && !u.fortified && !u.sleep && !u.skip && !(u.goto && u.goto.length);
+  const needsOrders = (u) => u.owner === 0 && u.mp > 0 && !u.fortified && !u.sleep && !u.skip && !u.task && !(u.goto && u.goto.length);
   game.pending = () => {
     const { G } = game;
     if (!G || G.over) return null;
@@ -221,6 +221,12 @@ export function install(app) {
           });
         }
         return;
+      case "work":
+        if (u && u.owner === 0 && S.startWork(G, M, u, data.id)) { game.changed(); autoAdvance(u); }
+        return;
+      case "trade":
+        if (u && u.owner === 0 && S.openRoute(G, M, u, +data.city)) { app.ui.toast?.("🧳 Ruta comercial abierta."); game.changed(); game.nextUnit(); }
+        return;
       case "build": {
         const c = game.selCity;
         if (!c || c.owner !== 0) return;
@@ -296,10 +302,10 @@ export function install(app) {
     const alerts = (G.alerts || []).splice(0);
     for (const a of alerts) { await UI.alertBox(game, a); game.changed(); }
     for (let k = 0; k < 2; k++) {
-      const ev = S.nextEvent(G, M, 0);
-      if (!ev) break;
-      const r = await UI.decide(game, ev);
-      S.resolveEvent(G, M, 0, ev.id, r.choice, { name: r.name });
+      const o = S.nextEvent(G, M, 0);
+      if (!o) break;
+      const r = await UI.decide(game, o);
+      S.resolveEvent(G, M, 0, o.ev.id, r.choice, { name: r.name, ctx: o.ctx, keep: r.keep });
       game.changed();
     }
     S.saveGame(G);

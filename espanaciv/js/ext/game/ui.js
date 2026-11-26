@@ -1,10 +1,11 @@
 // Interfaz DOM de «Hispania»: pantalla de inicio, barra de partida, panel lateral (unidad, ciudad o resumen),
 // botón de fin de turno, árbol tecnológico, diplomacia, registro, diálogos y pantalla final.
-import { PEOPLES, PEOPLE_BY_ID, DIFFICULTY, RESOURCES, UNITS, BUILDINGS, WONDERS, TECHS, ERAS, YIELD_ICON, GOVS, unlocksOf, yearLabel, yearOf, MAX_TURNS } from "./rules.js";
+import { PEOPLES, PEOPLE_BY_ID, DIFFICULTY, RESOURCES, UNITS, BUILDINGS, WONDERS, TECHS, ERAS, YIELD_ICON, GOVS, TAGS, FAITHS, INVASIONS, IMPROVEMENTS, ROAD, unlocksOf, yearLabel, yearOf, MAX_TURNS } from "./rules.js";
 import {
   K, playerCities, cityYield, growthNeed, itemCost, itemName, itemEmoji, buildOptions, buyCost, availableTechs, techCost,
   turnsTo, playerTotals, canFound, cityStrength, cityMaxHp, military, score, atWar, terrainName, tileYield, eraOf, housing, isMilitary,
-  countryName, availableGovs, stabilityTarget, nameSuggestions, altSpain, pmods, GOV_COOLDOWN, territoryShare,
+  countryName, availableGovs, stabilityTarget, nameSuggestions, altSpain, pmods, GOV_COOLDOWN, territoryShare, turnsOf, canAfford,
+  workOptions, tradeTargets, routesOf, routeYield, maxRoutes, cityById,
 } from "./sim.js";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -109,7 +110,7 @@ export function renderHud(game) {
   const sTone = stab >= 70 ? "good" : stab >= 40 ? "" : stab >= 20 ? "warn" : "bad";
   bar.innerHTML = `
     <button class="gb-people" data-act="history" style="--pc:${P.color}" title="Tu país: ${esc(countryName(P))}. Pulsa para ver su historia"><i></i>${esc(countryName(P))}</button>
-    <button class="gb-y gb-gov" data-act="gov" title="Gobierno: ${esc(GOVS[P.gov]?.name)} (G)">👑 <small>${esc(GOVS[P.gov]?.name || "")}</small></button>
+    <button class="gb-y gb-gov" data-act="gov" title="Gobierno: ${esc(GOVS[P.gov]?.name)} (G) · Fe: ${esc(FAITHS[P.faith]?.name || "")}">👑 <small>${esc(GOVS[P.gov]?.name || "")}</small> ${FAITHS[P.faith]?.emoji || ""}</button>
     <span class="gb-y gb-stab ${sTone}" title="Estabilidad ${stab}/100 (tiende a ${stabilityTarget(G, M, 0)}). Por encima de 70: +10 % de rendimiento; por debajo de 40: −15 %; por debajo de 20: −30 % y revueltas.">⚖️ <b>${stab}</b></span>
     <span class="gb-turn" title="Turno ${G.turn} de ${MAX_TURNS}"><b>${yearLabel(G.turn)}</b> · T${G.turn}</span>
     <button class="gb-y" data-act="economy" title="Oro: ${fmt(P.gold)} (${signed(t.net)} por turno; ${t.upkeep} de soldadas)">💰 <b>${fmt(Math.floor(P.gold))}</b> <small>${signed(t.net)}</small></button>
@@ -185,6 +186,24 @@ function unitPanel(game, u) {
       actions += btn("found", "🏛️ Fundar ciudad", "B", !cf.ok || u.mp <= 0, cf.why || "");
       actions += `<p class="gm-note">${cf.ok ? `Calidad del sitio: <b>${q >= 40 ? "excelente" : q >= 30 ? "buena" : q >= 20 ? "normal" : "pobre"}</b>${M.fresh[u.cell] ? " · agua dulce (+3 vivienda)" : M.coastal[u.cell] ? " · costa (+3 vivienda)" : ""}.` : esc(cf.why)}</p>`;
     }
+    if (U.worker) {
+      if (u.task) {
+        const name = u.task.id === "camino" ? ROAD.name : IMPROVEMENTS[u.task.id]?.name;
+        actions += `<p class="gm-note">🔨 Trabajando: <b>${esc(name)}</b> · faltan ${u.task.left} turno${u.task.left === 1 ? "" : "s"}.</p>`;
+      } else {
+        const opts = workOptions(G, M, u);
+        actions += opts.length ? `<div class="gp-opts">${opts.map((o) => `<button class="gp-opt" data-act="work" data-id="${o.id}"${o.ok && u.mp > 0 ? "" : " disabled"} title="${esc(o.ok ? (o.road ? ROAD.desc : "") : o.why)}"><span>${o.emoji}</span><b>${esc(o.name)}</b><small>${o.turns} turnos${o.ok ? "" : ` · ${esc(o.why)}`}</small></button>`).join("")}</div>`
+          : `<p class="gm-note">Aquí no hay nada que construir. Llévalos a una casilla de tu territorio.</p>`;
+      }
+    }
+    if (U.trade) {
+      const ts = tradeTargets(G, M, u);
+      const P0 = G.players[0];
+      const used = routesOf(G, 0).length, max = maxRoutes(G, P0);
+      actions += `<p class="gm-note">Rutas comerciales: ${used}/${max}. Origen: ${esc(cityById(G, u.home)?.name || "tu capital")}.</p>`;
+      actions += ts.length ? ts.map((t) => `<button class="gm-btn" data-act="trade" data-city="${t.city.id}"${t.full ? " disabled title='Has llegado al máximo de rutas'" : ""}>🧳 Ruta con ${esc(t.city.name)}${t.city.owner !== 0 ? ` (${esc(G.players[t.city.owner].name)})` : ""} · +${t.yield.g} 💰${t.yield.s ? ` +${t.yield.s} 🔬` : ""}</button>`).join("")
+        : `<p class="gm-hint">Llévalos junto a otra ciudad (tuya o de un pueblo en paz contigo). Las rutas con extranjeros rinden más y traen ciencia.</p>`;
+    }
     if (U.cls !== "civil") actions += btn("fortify", u.fortified ? "🛡️ Fortificada" : "🛡️ Fortificar", "F", u.fortified);
     actions += btn("skip", "⏭️ Saltar turno", "Espacio");
     actions += btn("sleep", "💤 Dormir", "");
@@ -250,9 +269,17 @@ function cityPanel(game, c) {
   };
   return `${head}
     ${yieldRow(y)}
-    <p class="gp-stats">🌾 ${Math.floor(c.food)}/${need} · ${esc(growTxt)}<br>🏠 vivienda ${hcap} · ${def}</p>
+    <p class="gp-stats">🌾 ${Math.floor(c.food)}/${need} · ${esc(growTxt)}<br>🏠 vivienda ${hcap} · ${def} · ${FAITHS[c.faith]?.emoji || ""} ${esc(FAITHS[c.faith]?.name || "")}${c.faith && c.faith !== P.faith ? " <span class='gb-warn'>(otra fe que el Estado)</span>" : ""}</p>
     ${cur}
     ${group("unit", "Unidades")}${group("building", "Edificios")}${group("wonder", "Maravillas (en su sitio real)")}${group("trade", "Otros")}
+    ${(() => {
+      const rs = (G.routes || []).filter((r) => r.from === c.id || r.to === c.id);
+      if (!rs.length) return "";
+      return `<h4>Rutas comerciales</h4><p class="gm-note">${rs.map((r) => {
+        const other = cityById(G, r.from === c.id ? r.to : r.from);
+        return r.from === c.id ? `🧳 → ${esc(other?.name || "?")} (+${routeYield(G, M, r).g} 💰)` : `🧳 ← ${esc(other?.name || "?")} (+1 💰)`;
+      }).join(" · ")}</p>`;
+    })()}
     <h4>Construido</h4><p class="gm-note">${c.buildings.map((b) => `${BUILDINGS[b].emoji} ${esc(BUILDINGS[b].name)}`).join(" · ") || "Nada todavía"}${c.wonders.length ? `<br>${c.wonders.map((w) => `🏛️ ${esc(WONDERS[w].name)}`).join(" · ")}` : ""}</p>`;
 }
 
@@ -267,7 +294,7 @@ function summaryPanel(game) {
     ${yieldRow({ food: t.food, p: t.p, g: t.net, s: t.s, c: t.c })}
     <p class="gp-stats">🏙️ ${cs.length} ciudades · 👥 ${cs.reduce((a, c) => a + c.pop, 0)} población · ⚔️ ejército ${military(G, 0)}</p>
     ${pend ? `<button class="gm-btn gm-primary gp-wide" data-act="pending">${esc(pend.label)}</button>` : ""}
-    <p class="gp-stats">⚖️ Estabilidad ${Math.round(P.stability)}/100 · 🗺️ ${Math.round(territoryShare(G, M, 0) * 100)} % de la Península</p>
+    <p class="gp-stats">⚖️ Estabilidad ${Math.round(P.stability)}/100 · 🗺️ ${Math.round(territoryShare(G, M, 0) * 100)} % de la Península · ${FAITHS[P.faith]?.emoji || ""} ${esc(FAITHS[P.faith]?.name || "")}</p>
     <div class="gp-actions"><button class="gm-btn" data-act="tech">🔬 Tecnologías <kbd>T</kbd></button><button class="gm-btn" data-act="gov">👑 Gobierno <kbd>G</kbd></button><button class="gm-btn" data-act="diplo">🤝 Diplomacia</button><button class="gm-btn" data-act="history">📖 Tu historia</button><button class="gm-btn" data-act="next">👉 Siguiente unidad <kbd>N</kbd></button></div>
     <h4>Crónica reciente</h4>
     <ul class="gp-log">${recent.map((e) => `<li${e.cell != null ? ` data-act="goto" data-cell="${e.cell}"` : ""}><small>T${e.turn}</small> ${esc(e.msg)}</li>`).join("") || "<li class='muted'>Nada por ahora.</li>"}</ul>
@@ -317,7 +344,7 @@ export function showDiplo(game) {
     const truce = (G.players[0].peaceUntil?.[Q.idx] ?? 0) > G.turn;
     return `<div class="gd-row${Q.alive ? "" : " dead"}">
       <span class="gd-name"><i style="background:${Q.color}"></i>${esc(countryName(Q))}</span>
-      <span>${Q.alive ? `${playerCities(G, Q.idx).length} ciudades · ${score(G, Q.idx)} puntos · ejército ${rel}` : "Desaparecidos"}</span>
+      <span>${Q.alive ? `${playerCities(G, Q.idx).length} ciudades · ${score(G, Q.idx)} puntos · ejército ${rel} · ${FAITHS[Q.faith]?.emoji || ""}` : Q.annexedBy != null ? `Unidos a ${esc(countryName(G.players[Q.annexedBy]))}` : "Desaparecidos"}</span>
       <span class="gd-st ${war ? "war" : "peace"}">${war ? "⚔️ En guerra" : truce ? `🕊️ Tregua hasta T${G.players[0].peaceUntil[Q.idx]}` : "🕊️ En paz"}</span>
       ${Q.alive ? war ? `<button class="gm-btn" data-peace="${Q.idx}">Proponer la paz</button>` : `<button class="gm-btn gm-danger" data-war="${Q.idx}"${truce ? " disabled" : ""}>Declarar la guerra</button>` : ""}
     </div>`;
@@ -369,6 +396,9 @@ export function showHelp(game) {
       <li><b>Maravillas</b>: cada una solo se puede levantar en una ciudad cuyo territorio incluya su sitio real (Atapuerca en Burgos, la Mezquita en Córdoba…).</li>
       <li><b>Combate</b>: pulsa un enemigo marcado en rojo. Pasa el ratón por encima antes para ver el daño previsto. Colinas, montañas, bosques y fortificarse (<kbd>F</kbd>) ayudan a defender. Las ciudades se toman bajando su vida a 0 y entrando cuerpo a cuerpo.</li>
       <li><b>Mar</b>: con Navegación las unidades embarcan por la costa (Baleares, Canarias); con Cartografía, por el mar abierto.</li>
+      <li><b>Obreros</b>: construyen granjas, minas, aserraderos, viñedos y olivares, dehesas y caminos en tu territorio. Por los caminos se va al doble de rápido (al cuádruple con el ferrocarril).</li>
+      <li><b>Comercio</b>: los mercaderes abren rutas desde su ciudad de origen hasta otra ciudad tuya o de un vecino en paz. Las rutas con extranjeros rinden más y traen ciencia; una guerra las corta.</li>
+      <li><b>Marina</b>: galeras, carabelas, galeones, navíos, acorazados, submarinos y fragatas solo navegan; las que tienen cañones bombardean costas y barcos a distancia.</li>
       <li><b>Invasiones</b>: llegan cuando llegaron en la historia (celtas, Cartago, Roma, germanos, omeyas, vikingos, almorávides, Napoleón…) por los pasos del Pirineo, el Estrecho o la costa. Si toman una ciudad, se quedan como un pueblo nuevo; si aguantas, la historia cambia.</li>
       <li><b>Decisiones</b>: a lo largo de los siglos tendrás que elegir (fenicios, una nueva fe, fueros, la imprenta, una constitución, Europa, la energía…). Cada elección deja huella en tu país y en su crónica.</li>
       <li><b>Gobierno y estabilidad</b> (<kbd>G</kbd>): cada régimen tiene ventajas. La estabilidad baja con las guerras y con un imperio demasiado grande; por debajo de 20 hay revueltas.</li>
@@ -411,6 +441,8 @@ export function tooltip(game, cell) {
   if (yl) lines.push(yl);
   const r = M.res[cell];
   if (r) lines.push(`Recurso: ${RESOURCES[r].emoji} ${esc(RESOURCES[r].name)}`);
+  if (G.improv[cell]) lines.push(`${IMPROVEMENTS[G.improv[cell]]?.emoji} ${esc(IMPROVEMENTS[G.improv[cell]]?.name || "")}`);
+  if (G.road[cell]) lines.push(`🛤️ Camino`);
   const real = M.names[cell];
   if (real) lines.push(`<span class="muted">Hoy: ${esc(real)}</span>`);
   const tc = G.tileOwner[cell] >= 0 ? G.cities.find((c) => c.id === G.tileOwner[cell]) : null;
@@ -435,36 +467,92 @@ export function tooltip(game, cell) {
 
 
 // --- decisiones, avisos, gobierno y crónica -----------------------------------------------------------------------
-/** Muestra una decisión y espera la elección: {choice, name}. */
-export function decide(game, ev) {
+const pctTxt = (v) => `${v > 0 ? "+" : "−"}${Math.round(Math.abs(v) * 100)} %`;
+const num = (v) => `${v > 0 ? "+" : "−"}${fmt(Math.abs(v))}`;
+const MOD_TXT = {
+  pPct: (v) => `${pctTxt(v)} ⚙️`, gPct: (v) => `${pctTxt(v)} 💰`, sPct: (v) => `${pctTxt(v)} 🔬`, cPct: (v) => `${pctTxt(v)} 🎭`,
+  capP: (v) => `${num(v)} ⚙️ en la capital`, att: (v) => `${num(v)} ⚔️ al atacar`, def: (v) => `${num(v)} 🛡️ en tus ciudades`,
+  defPct: (v) => `${pctTxt(v)} de defensa en tus ciudades`, cityF: (v) => `${num(v)} 🌾 por ciudad`, cityS: (v) => `${num(v)} 🔬 por ciudad`,
+  cityC: (v) => `${num(v)} 🎭 por ciudad`, cityG: (v) => `${num(v)} 💰 por ciudad`, coastG: (v) => `${num(v)} 💰 por ciudad costera`,
+  stab: (v) => `${num(v)} de estabilidad`,
+  routes: (v) => `${num(v)} ruta${Math.abs(v) === 1 ? "" : "s"} comercial${Math.abs(v) === 1 ? "" : "es"} máxima${Math.abs(v) === 1 ? "" : "s"}`,
+  drought: (v) => (v > 0 ? "la sequía te golpeará más" : "resistirás mejor la sequía"),
+  sprawl: (v) => (v < 0 ? `${Math.round(-v * 100)} % menos de penalización por extensión` : `${Math.round(v * 100)} % más de penalización por extensión`),
+};
+/** Efectos de una opción, en palabras (calculados con la economía actual del jugador). */
+export function effectChips(game, eff, ctx = {}) {
   const { G, M } = game;
   const P = G.players[0];
+  const out = [];
+  if (!eff) return out;
+  if (eff.goldT) out.push({ t: `${eff.goldT > 0 ? "+" : "−"}${turnsOf(G, M, 0, "g", Math.abs(eff.goldT))} 💰`, good: eff.goldT > 0 });
+  if (eff.sciT) out.push({ t: `+${turnsOf(G, M, 0, "s", eff.sciT)} 🔬`, good: true });
+  if (eff.cultT) out.push({ t: `+${turnsOf(G, M, 0, "c", eff.cultT)} 🎭`, good: true });
+  if (eff.tech) out.push({ t: `Descubres ${TECHS[eff.tech].name}`, good: true });
+  if (eff.techPart) out.push({ t: `Mitad de coste: ${[].concat(eff.techPart).filter((t) => !P.techs.includes(t)).map((t) => TECHS[t].name).join(", ") || "(ya conocida)"}`, good: true });
+  if (eff.stab) out.push({ t: `${num(eff.stab)} de estabilidad`, good: eff.stab > 0 });
+  for (const [k, v] of Object.entries(eff.mods || {})) if (MOD_TXT[k]) out.push({ t: `${MOD_TXT[k](v)} (permanente)`, good: k === "drought" || k === "sprawl" ? v < 0 : v > 0 });
+  if (eff.temp) for (const [k, v] of Object.entries(eff.temp.mods)) if (MOD_TXT[k]) out.push({ t: `${MOD_TXT[k](v)} durante ${eff.temp.turns} turnos`, good: v > 0 });
+  if (eff.units) for (const [spec, n] of eff.units) {
+    const cls = spec.startsWith("best:") ? { melee: "infantería", montada: "caballería", ranged: "tropas a distancia", asedio: "asedio" }[spec.slice(5)] : UNITS[spec]?.name;
+    out.push({ t: `Recibes ${n} unidad${n > 1 ? "es" : ""} de ${cls}`, good: true });
+  }
+  if (eff.plague) out.push({ t: `Pierdes el ${Math.round(eff.plague * 100)} % de la población`, good: false });
+  if (eff.droughtHit) out.push({ t: "Pierdes población por la sequía", good: false });
+  if (eff.gov) {
+    const g = [].concat(eff.gov).find((x) => availableGovs(P).includes(x));
+    out.push({ t: g ? `Pasas a ${GOVS[g].name.toLowerCase()}` : `Cambio de régimen (cuando conozcas ${[].concat(eff.gov).map((x) => GOVS[x].name.toLowerCase()).join(" o ")})`, good: null });
+  }
+  if (eff.faith) out.push({ t: `Fe oficial: ${FAITHS[eff.faith].name}`, good: null });
+  if (eff.convert) out.push({ t: "Todas tus ciudades adoptan tu fe", good: null });
+  if (eff.peaceWith) out.push({ t: `Paz con ${INVASIONS.find((i) => i.id === eff.peaceWith)?.short || "los invasores"}`, good: true });
+  if (eff.peaceAll) out.push({ t: "Paz con los vecinos en guerra contigo", good: true });
+  if (eff.warNeighbor) out.push({ t: `Guerra con los ${ctx.neighbor != null ? G.players[ctx.neighbor].name : "vecinos"}`, good: false });
+  if (eff.union) out.push({ t: `Los ${ctx.neighbor != null ? G.players[ctx.neighbor].name : "vecinos"} se unen a tu país`, good: true });
+  if (eff.rebels) out.push({ t: `Revuelta armada en ${eff.rebels} ciudad${eff.rebels > 1 ? "es" : ""}`, good: false });
+  if (eff.pop) out.push({ t: `+${eff.pop} de población en la capital`, good: true });
+  if (eff.building) out.push({ t: `Gratis en la capital: ${BUILDINGS[eff.building]?.name}`, good: true });
+  if (eff.roads) out.push({ t: "Caminos de la capital a todas tus ciudades", good: true });
+  if (eff.tag) out.push({ t: `Identidad: ${TAGS[eff.tag] || eff.tag}`, good: null, tag: true });
+  return out;
+}
+/** Muestra una decisión y espera la elección: {choice, name, keep}. `o` = {ev, ctx, text} de sim.nextEvent. */
+export function decide(game, o) {
+  const { G, M } = game;
+  const P = G.players[0];
+  const ev = o.ev;
   return new Promise((resolve) => {
     const body = el("div", "gm-event");
+    const done = (r) => { closeModal(game); resolve(r); };
     if (ev.name) {
       const sug = nameSuggestions(G, M, P);
-      body.innerHTML = `<p class="gm-year">${yearLabel(G.turn)}</p><p class="gm-lead">${esc(ev.text)}</p>
+      body.innerHTML = `<p class="gm-year">${yearLabel(G.turn)}</p><p class="gm-lead">${esc(o.text)}</p>
         <div class="gm-names">${sug.map((n) => `<button class="gm-btn" data-name="${esc(n)}">${esc(n)}</button>`).join("")}</div>
         <label class="gm-field">O escribe el tuyo <input type="text" maxlength="48" placeholder="${esc(sug[0] || "")}" data-input></label>
-        <div class="gm-row gm-end"><button class="gm-btn gm-primary" data-ok>Así se llamará</button></div>`;
+        <div class="gm-row gm-end">${ev.keepable && P.country ? `<button class="gm-btn" data-keep>Conservar «${esc(P.country)}»</button>` : ""}<button class="gm-btn gm-primary" data-ok>Así se llamará</button></div>`;
       const inp = body.querySelector("[data-input]");
       body.addEventListener("click", (e) => {
         const n = e.target.closest("[data-name]")?.dataset.name;
         if (n) inp.value = n;
-        if (e.target.closest("[data-ok]")) { closeModal(game); resolve({ choice: 0, name: inp.value.trim() || sug[0] }); }
+        if (e.target.closest("[data-keep]")) done({ choice: 0, keep: true });
+        if (e.target.closest("[data-ok]")) done({ choice: 0, name: inp.value.trim() || sug[0] });
       });
-      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); closeModal(game); resolve({ choice: 0, name: inp.value.trim() || sug[0] }); } });
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); done({ choice: 0, name: inp.value.trim() || sug[0] }); } });
     } else {
-      body.innerHTML = `<p class="gm-year">${yearLabel(G.turn)}${ev.crisis ? " · <b class='gb-warn'>Crisis</b>" : ""}</p><p class="gm-lead">${esc(ev.text)}</p>
-        <div class="gm-choices">${ev.choices.map((c, i) => `<button class="gm-choice" data-c="${i}"><b>${esc(c.label)}</b>${c.desc ? `<small>${esc(c.desc)}</small>` : ""}</button>`).join("")}</div>`;
+      body.innerHTML = `<p class="gm-year">${yearLabel(G.turn)}${ev.crisis ? " · <b class='gb-warn'>Crisis</b>" : ev.repeat ? " · suceso" : ""}</p><p class="gm-lead">${esc(o.text)}</p>
+        <div class="gm-choices">${ev.choices.map((c, i) => {
+          const ok = canAfford(G, M, 0, c.eff);
+          const chips = effectChips(game, c.eff, o.ctx);
+          return `<button class="gm-choice" data-c="${i}"${ok ? "" : " disabled title='No tienes oro suficiente'"}><b>${esc(c.label)}</b>
+            <span class="gm-chips">${chips.map((x) => `<i class="${x.tag ? "tag" : x.good === true ? "good" : x.good === false ? "bad" : ""}">${esc(x.t)}</i>`).join("")}</span></button>`;
+        }).join("")}</div>`;
       body.addEventListener("click", (e) => {
-        const c = e.target.closest("[data-c]")?.dataset.c;
-        if (c == null) return;
-        closeModal(game);
-        resolve({ choice: +c });
+        const b = e.target.closest("[data-c]");
+        if (!b || b.disabled) return;
+        done({ choice: +b.dataset.c });
       });
     }
-    modal(game, { title: `${ev.crisis ? "⚠️" : "📜"} ${esc(ev.title)}`, body, cls: "gm-mid gm-decision", closable: false });
+    modal(game, { title: `${ev.crisis ? "⚠️" : ev.name ? "🏷️" : "📜"} ${esc(ev.title)}`, body, cls: "gm-mid gm-decision", closable: false });
   });
 }
 /** Aviso de invasión o revuelta. */
@@ -504,7 +592,7 @@ function historyHtml(game) {
   const P = G.players[0];
   const tl = A.chron.slice(-60);
   return `<div class="gh-head" style="--pc:${P.color}"><span class="gh-flag"><i></i><i></i><i></i></span><div><h3>${esc(A.name)}</h3>
-      <span class="gp-sub">${esc(A.gov || "")} · ${A.cities} ciudades · ${Math.round(A.share * 100)} % de la Península · ${A.pop} de población${A.capital ? ` · capital: ${esc(A.capital)}` : ""}</span></div></div>
+      <span class="gp-sub">${esc(A.gov || "")} · ${esc(A.faith || "")} · ${A.cities} ciudades · ${Math.round(A.share * 100)} % de la Península · ${A.pop} de población${A.capital ? ` · capital: ${esc(A.capital)}` : ""}</span></div></div>
     ${A.tags.length ? `<p class="gh-tags">${A.tags.slice(0, 8).map((t) => `<span>${esc(t)}</span>`).join("")}</p>` : ""}
     <div class="gh-story">${A.story.map((x) => `<p>${esc(x)}</p>`).join("")}</div>
     <h4>Crónica</h4><ol class="gh-tl">${tl.map((e) => `<li><small>${esc(e.year)}</small> ${esc(e.text)}</li>`).join("")}</ol>`;

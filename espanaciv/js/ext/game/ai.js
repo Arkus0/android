@@ -6,6 +6,7 @@ import {
   rng, K, dist, within, neighbours, has, atWar, cityAt, isMilitary, playerCities, playerUnits, tileOwnerPlayer,
   buildOptions, setBuild, canFound, foundCity, availableTechs, techCost, findPath, moveAlong, canAttack, preview, attack,
   declareWar, makePeace, military, cityYield, housing, fullMp, enterCost, aiEvents, availableGovs, setGov, GOV_COOLDOWN, buyCost, buy,
+  isNaval, workOptions, startWork, tileYield, tradeTargets, openRoute, maxRoutes, routesOf, routeYield, cityById,
 } from "./sim.js";
 
 const FLAVOR = {
@@ -140,11 +141,12 @@ function chooseBuild(G, M, city) {
   const can = (kind, id) => opts.find((o) => o.kind === kind && o.id === id);
   const set = (kind, id) => { setBuild(G, city, { kind, id }); return true; };
   const cities = playerCities(G, p);
-  const mil = G.units.filter((u) => u.owner === p && isMilitary(u) && UNITS[u.type].cls !== "explorador").length;
+  const mil = G.units.filter((u) => u.owner === p && isMilitary(u) && !isNaval(u) && UNITS[u.type].cls !== "explorador").length;
   const atWarAny = G.players.some((Q) => Q.alive && atWar(G, p, Q.idx));
-  const garrisoned = G.units.some((u) => u.owner === p && u.cell === city.cell && isMilitary(u) && UNITS[u.type].cls !== "explorador");
+  const garrisoned = G.units.some((u) => u.owner === p && u.cell === city.cell && isMilitary(u) && !isNaval(u) && UNITS[u.type].cls !== "explorador");
   const inProd = (id) => cities.filter((c) => c.build?.kind === "unit" && c.build.id === id).length;
   const defender = bestUnit(G, P, (U) => U.cls === "melee");
+  const count = (f) => G.units.filter((u) => u.owner === p && f(u)).length;
   if (!garrisoned && defender && cities.filter((c) => c.build?.kind === "unit" && isDefBuild(c.build.id)).length < cities.length) return set("unit", defender);
   if (atWarAny && mil < cities.length * 2 + 2) {
     const r = rng(G);
@@ -157,6 +159,15 @@ function chooseBuild(G, M, city) {
   const settlers = G.units.filter((u) => u.owner === p && u.type === "colono").length + inProd("colono");
   if (cities.length < P.aiTargetCities && can("unit", "colono") && settlers < 1 + Math.floor(cities.length / 4) && G.turn < 200) {
     if (cities.length <= 1 || rng(G) < 0.7) return set("unit", "colono");
+  }
+  const workers = count((u) => UNITS[u.type].worker) + inProd("obreros");
+  if (cities.length >= 2 && workers < Math.max(1, Math.floor(cities.length * 0.6)) && workCandidates(G, M, p).length > workers * 3 && rng(G) < 0.6) return set("unit", "obreros");
+  const traders = count((u) => UNITS[u.type].trade) + inProd("mercaderes");
+  if (can("unit", "mercaderes") && routesOf(G, p).length + traders < maxRoutes(G, P) && rng(G) < 0.45) return set("unit", "mercaderes");
+  if (M.coastal[city.cell] && atWarAny) {
+    const ships = count((u) => isNaval(u)) + cities.filter((c) => c.build?.kind === "unit" && UNITS[c.build.id]?.cls === "naval").length;
+    const ship = bestUnit(G, P, (U, id) => U.cls === "naval" && !!U.rstr) || bestUnit(G, P, (U) => U.cls === "naval");
+    if (ship && ships < 2 + Math.floor(cities.length / 4) && rng(G) < 0.5) return set("unit", ship);
   }
   const y = cityYield(G, M, city);
   const wonders = opts.filter((o) => o.kind === "wonder");
@@ -177,6 +188,9 @@ const isDefBuild = (id) => UNITS[id]?.cls === "melee";
 // --- unidades ---------------------------------------------------------------------------------------------------
 function actUnit(G, M, u) {
   const U = UNITS[u.type];
+  if (U.worker) return actWorker(G, M, u);
+  if (U.trade) return actTrader(G, M, u);
+  if (U.cls === "naval") return actNaval(G, M, u);
   if (U.cls === "civil") return actSettler(G, M, u);
   if (U.cls === "explorador") return actExplorer(G, M, u);
   return actMilitary(G, M, u);
@@ -241,7 +255,7 @@ function actSettler(G, M, u) {
 }
 function stepTowards(G, M, u, target, { attack: atk = false } = {}) {
   if (!u.goto || !u.goto.length || u.goto[u.goto.length - 1] !== target) {
-    const pth = findPath(G, M, u, target, { attack: atk, maxTurns: 25 });
+    const pth = findPath(G, M, u, target, { attack: atk, maxTurns: isNaval(u) ? 8 : 25 });
     if (!pth) { u.goto = null; return false; }
     u.goto = pth.path;
   }
@@ -298,7 +312,7 @@ function actMilitary(G, M, u) {
   const U = UNITS[u.type];
   const cities = playerCities(G, p);
   const here = cityAt(G, u.cell);
-  const garrisonHere = here && here.owner === p && !G.units.some((o) => o !== u && o.owner === p && o.cell === u.cell && isMilitary(o) && UNITS[o.type].cls !== "explorador");
+  const garrisonHere = here && here.owner === p && !G.units.some((o) => o !== u && o.owner === p && o.cell === u.cell && isMilitary(o) && !isNaval(o) && UNITS[o.type].cls !== "explorador");
   // 1) aprovechar ataques buenos a mano
   if (u.mp > 0 && tryAttack(G, M, u)) return;
   // 2) guarnición: si es la única defensa de su ciudad, se queda
@@ -311,7 +325,7 @@ function actMilitary(G, M, u) {
     return;
   }
   // 4) ciudades propias sin defensa
-  const empty = cities.filter((c) => !G.units.some((o) => o.owner === p && o.cell === c.cell && isMilitary(o) && UNITS[o.type].cls !== "explorador"));
+  const empty = cities.filter((c) => !G.units.some((o) => o.owner === p && o.cell === c.cell && isMilitary(o) && !isNaval(o) && UNITS[o.type].cls !== "explorador"));
   if (empty.length) {
     const tgt = empty.sort((a, b) => dist(M, a.cell, u.cell) - dist(M, b.cell, u.cell))[0];
     const claimed = G.units.some((o) => o !== u && o.owner === p && o.aiRole === `def:${tgt.id}`);
@@ -349,4 +363,124 @@ function actMilitary(G, M, u) {
     if (dist(M, home.cell, u.cell) > 2) { stepTowards(G, M, u, home.cell); return; }
   }
   u.fortified = true;
+}
+
+// --- obreros: mejoran las casillas más rentables de sus ciudades --------------------------------------------------
+const score3 = (y) => y.f * 1.4 + y.p * 1.2 + y.g * 0.8;
+function bestWork(G, M, u, cell) {
+  const save = u.cell;
+  u.cell = cell;
+  const opts = workOptions(G, M, u).filter((o) => o.ok && !o.road);
+  u.cell = save;
+  if (!opts.length) return null;
+  const before = score3(tileYield(G, M, u.owner, cell));
+  let best = null, bs = 0;
+  for (const o of opts) {
+    const keep = G.improv[cell];
+    G.improv[cell] = o.id;
+    const gain = score3(tileYield(G, M, u.owner, cell)) - before;
+    if (keep === undefined) delete G.improv[cell]; else G.improv[cell] = keep;
+    if (gain > bs) { bs = gain; best = o.id; }
+  }
+  return best ? { id: best, gain: bs } : null;
+}
+// Casillas mejorables de cada pueblo: se calculan una vez por turno (y se van reservando).
+let WC = null;
+function workCandidates(G, M, p) {
+  if (WC && WC.G === G && WC.turn === G.turn && WC.p === p) return WC.list;
+  const list = [];
+  const probe = { owner: p, type: "obreros", cell: 0 };
+  for (const city of playerCities(G, p)) {
+    for (const c of within(M, city.cell, 3)) {
+      if (G.tileOwner[c] !== city.id || G.improv[c] || c === city.cell) continue;
+      const w = bestWork(G, M, probe, c);
+      if (w) list.push({ cell: c, id: w.id, gain: w.gain });
+    }
+  }
+  WC = { G, turn: G.turn, p, list };
+  return list;
+}
+function actWorker(G, M, u) {
+  if (u.task) return;
+  const p = u.owner;
+  if (u.aiTarget != null && u.cell === u.aiTarget) {
+    const w = G.improv[u.cell] ? null : bestWork(G, M, u, u.cell);
+    u.aiTarget = null;
+    if (w && startWork(G, M, u, w.id)) return;
+  }
+  if (u.aiTarget == null) {
+    const claimed = new Set(G.units.filter((o) => o !== u && o.owner === p && o.aiTarget != null).map((o) => o.aiTarget));
+    let best = null, bs = 0;
+    for (const w of workCandidates(G, M, p)) {
+      if (claimed.has(w.cell)) continue;
+      const d = dist(M, w.cell, u.cell);
+      if (d > 12) continue;
+      const s = w.gain * 3 - d * 0.35;
+      if (s > bs) { bs = s; best = w.cell; }
+    }
+    if (best == null) {
+      const road = workOptions(G, M, u).find((o) => o.road && o.ok);
+      if (road && tileOwnerPlayer(G, u.cell) === p && rng(G) < 0.3) { startWork(G, M, u, "camino"); return; }
+      u.fortified = true;
+      return;
+    }
+    u.aiTarget = best;
+  }
+  if (u.cell !== u.aiTarget) {
+    if (!stepTowards(G, M, u, u.aiTarget)) u.aiTarget = null;
+    if (u.aiTarget != null && u.cell === u.aiTarget && u.mp > 0) {
+      const w = G.improv[u.cell] ? null : bestWork(G, M, u, u.cell);
+      if (w) { startWork(G, M, u, w.id); u.aiTarget = null; }
+    }
+  }
+}
+
+// --- mercaderes: rutas con las ciudades más rentables -------------------------------------------------------------
+function actTrader(G, M, u) {
+  const p = u.owner;
+  const t = tradeTargets(G, M, u).filter((x) => !x.full);
+  if (t.length) {
+    t.sort((a, b) => b.yield.g - a.yield.g);
+    if (u.aiTarget == null || t.some((x) => x.city.cell === u.aiTarget)) { openRoute(G, M, u, (t.find((x) => x.city.cell === u.aiTarget) || t[0]).city.id); return; }
+  }
+  if (u.aiTarget == null) {
+    const home = cityById(G, u.home) || playerCities(G, p)[0];
+    if (!home) return;
+    const have = new Set(routesOf(G, p).filter((r) => r.from === home.id).map((r) => r.to));
+    let best = null, bs = -Infinity;
+    for (const c of G.cities) {
+      if (c === home || have.has(c.id)) continue;
+      const Q = G.players[c.owner];
+      if (c.owner !== p && (atWar(G, p, c.owner) || Q.invader)) continue;
+      const d = dist(M, c.cell, home.cell);
+      if (d > 26) continue;
+      const y = routeYield(G, M, { from: home.id, to: c.id });
+      const s = y.g + y.s - d * 0.15;
+      if (s > bs) { bs = s; best = c; }
+    }
+    if (!best) return;
+    u.aiTarget = best.cell;
+  }
+  if (!stepTowards(G, M, u, u.aiTarget, { attack: true })) u.aiTarget = null;
+  const t2 = tradeTargets(G, M, u).filter((x) => !x.full);
+  if (t2.length) openRoute(G, M, u, t2.sort((a, b) => b.yield.g - a.yield.g)[0].city.id);
+}
+
+// --- barcos: cazar barcos enemigos y bombardear costas -----------------------------------------------------------
+function actNaval(G, M, u) {
+  const p = u.owner;
+  if (u.mp > 0 && tryAttack(G, M, u)) return;
+  const enemies = [];
+  for (const e of G.units) if (isNaval(e) && atWar(G, p, e.owner) && dist(M, e.cell, u.cell) <= 14) enemies.push(e.cell);
+  for (const c of G.cities) if (atWar(G, p, c.owner) && M.coastal[c.cell] && dist(M, c.cell, u.cell) <= 18) enemies.push(c.cell);
+  if (enemies.length) {
+    enemies.sort((a, b) => dist(M, a, u.cell) - dist(M, b, u.cell));
+    stepTowards(G, M, u, enemies[0], { attack: true });
+    if (u.mp > 0) tryAttack(G, M, u);
+    return;
+  }
+  // sin enemigos: volver a un puerto propio
+  const home = playerCities(G, p).filter((c) => M.coastal[c.cell]).sort((a, b) => dist(M, a.cell, u.cell) - dist(M, b.cell, u.cell))[0];
+  if (home && dist(M, home.cell, u.cell) > 2) stepTowards(G, M, u, home.cell);
+  else u.fortified = true;
 }

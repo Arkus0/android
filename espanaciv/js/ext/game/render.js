@@ -3,8 +3,8 @@
 //   pantalla (z 120): unidades, estandartes de las ciudades y los números de daño flotantes.
 // Los caminos (Path2D) de territorio y niebla se cachean por revisión de la partida (game.rev).
 import { drawCityTile } from "../../render/art/city.js";
-import { UNITS, RESOURCES } from "./rules.js";
-import { K, cityYield, itemCost, itemEmoji, growthNeed, cityMaxHp, isMilitary } from "./sim.js";
+import { UNITS, RESOURCES, IMPROVEMENTS } from "./rules.js";
+import { K, cityYield, itemCost, itemEmoji, growthNeed, cityMaxHp, isMilitary, isNaval, cityById, has } from "./sim.js";
 
 const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; };
@@ -49,7 +49,27 @@ export function createRenderer(app, game) {
       if (!G.explored[i]) hexPath(dark, i);
       else if (!vis[i]) hexPath(dim, i);
     }
-    cache.fills = fills; cache.edges = edges; cache.dark = dark; cache.dim = dim; cache.ownerOf = ownerOf;
+    // caminos (y vías de tren en el territorio de quien conoce el ferrocarril)
+    const road = new Path2D(), rail = new Path2D();
+    const cityCells = new Set(G.cities.map((c) => c.cell));
+    const isRoad = (i) => G.road[i] || cityCells.has(i);
+    for (const k of Object.keys(G.road)) {
+      const i = +k;
+      if (!G.explored[i]) continue;
+      const o = ownerOf[i];
+      const P = o >= 0 ? G.players[o] : null;
+      const path = P && has(P, "ferrocarril") ? rail : road;
+      let any = false;
+      for (let d = 0; d < 6; d++) {
+        const j = M.nb[i * 6 + d];
+        if (j < 0 || !isRoad(j) || (G.road[j] && j < i)) continue;
+        path.moveTo(grid.cx(i), grid.cy(i));
+        path.lineTo(grid.cx(j), grid.cy(j));
+        any = true;
+      }
+      if (!any) { path.moveTo(grid.cx(i) - R * 0.25, grid.cy(i)); path.lineTo(grid.cx(i) + R * 0.25, grid.cy(i)); }
+    }
+    cache.fills = fills; cache.edges = edges; cache.dark = dark; cache.dim = dim; cache.ownerOf = ownerOf; cache.road = road; cache.rail = rail;
     cache.rev = game.rev;
   }
 
@@ -78,7 +98,39 @@ export function createRenderer(app, game) {
         ctx.lineWidth = 2.4 / s;
         ctx.stroke(p);
       }
-      // recursos (solo en lo explorado)
+      // caminos y vías
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(90,62,30,.85)"; ctx.lineWidth = Math.max(1.5 / s, R * 0.09); ctx.stroke(cache.road);
+      ctx.strokeStyle = "rgba(196,160,104,.9)"; ctx.lineWidth = Math.max(0.8 / s, R * 0.045); ctx.stroke(cache.road);
+      ctx.strokeStyle = "rgba(30,30,34,.9)"; ctx.lineWidth = Math.max(2 / s, R * 0.1); ctx.stroke(cache.rail);
+      ctx.setLineDash([R * 0.12, R * 0.1]); ctx.strokeStyle = "rgba(200,200,200,.9)"; ctx.lineWidth = Math.max(1 / s, R * 0.05); ctx.stroke(cache.rail); ctx.setLineDash([]);
+      // rutas comerciales (las tuyas en oro)
+      for (const r of G.routes || []) {
+        const a = cityById(G, r.from), b = cityById(G, r.to);
+        if (!a || !b || !G.explored[a.cell] || !G.explored[b.cell]) continue;
+        const x0 = grid.cx(a.cell), y0 = grid.cy(a.cell), x1 = grid.cx(b.cell), y1 = grid.cy(b.cell);
+        const mx = (x0 + x1) / 2 - (y1 - y0) * 0.15, my = (y0 + y1) / 2 + (x1 - x0) * 0.15;
+        ctx.strokeStyle = r.owner === 0 ? "rgba(245,205,90,.85)" : "rgba(230,230,230,.35)";
+        ctx.lineWidth = (r.owner === 0 ? 2.2 : 1.4) / s;
+        ctx.setLineDash([6 / s, 5 / s]);
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // recursos y mejoras (solo en lo explorado)
+      if (Rpx > 13) {
+        ctx.save();
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = `${Math.round(R * 0.5)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+        for (const k of Object.keys(G.improv)) {
+          const i = +k;
+          if (!G.explored[i] || !inView(i)) continue;
+          const x = grid.cx(i) - R * 0.4, y = grid.cy(i) + R * 0.38;
+          ctx.fillStyle = "rgba(240,230,200,.8)";
+          ctx.beginPath(); ctx.arc(x, y, R * 0.32, 0, Math.PI * 2); ctx.fill();
+          ctx.fillText(IMPROVEMENTS[G.improv[k]]?.emoji || "", x, y + R * 0.02);
+        }
+        ctx.restore();
+      }
       if (Rpx > 11) {
         ctx.save();
         ctx.textAlign = "center";
@@ -274,7 +326,13 @@ export function createRenderer(app, game) {
     ctx.lineWidth = 2;
     ctx.beginPath();
     if (U.cls === "civil") ctx.arc(x, y, r * 0.86, 0, Math.PI * 2);
-    else { // escudo
+    else if (U.cls === "naval") { // casco de barco
+      ctx.moveTo(x - r * 1.1, y - r * 0.35);
+      ctx.lineTo(x + r * 1.1, y - r * 0.35);
+      ctx.quadraticCurveTo(x + r * 0.8, y + r * 0.85, x, y + r * 0.85);
+      ctx.quadraticCurveTo(x - r * 0.8, y + r * 0.85, x - r * 1.1, y - r * 0.35);
+      ctx.closePath();
+    } else { // escudo
       ctx.moveTo(x - r, y - r * 0.85);
       ctx.lineTo(x + r, y - r * 0.85);
       ctx.lineTo(x + r, y + r * 0.1);
@@ -291,7 +349,8 @@ export function createRenderer(app, game) {
       ctx.fillStyle = u.hp > 60 ? "#6bd36b" : u.hp > 30 ? "#f0c040" : "#e5533d";
       ctx.fillRect(x - r, y - r - 7, r * 2 * (u.hp / 100), 4);
     }
-    if (u.owner === 0) {
+    if (u.task) { ctx.font = `${Math.round(r * 0.75)}px sans-serif`; ctx.fillText("🔨", x + r * 0.9, y - r * 0.7); }
+    if (u.owner === 0 && !u.task) {
       if (u.fortified) { ctx.font = `${Math.round(r * 0.7)}px sans-serif`; ctx.fillText("🛡", x + r * 0.9, y - r * 0.7); }
       else if (u.mp > 0 && !u.goto && !u.sleep && !u.skip) {
         ctx.fillStyle = "#ffe36e"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1;
