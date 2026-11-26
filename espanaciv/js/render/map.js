@@ -121,7 +121,8 @@ export function drawStatic(ctx, vp, w, opts) {
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cells.push(r * grid.cols + c);
 
   // Registered static layers, by z (stable), drawn by upTo(z) before each built-in step.
-  const layers = (opts.layers || []).filter((l) => layerActive(l, Rpx)).sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+  // opts.plain (el modo juego): solo el terreno; ni fronteras, ni ciudades, ni capas, ni nombres, ni recursos.
+  const layers = (opts.layers || []).filter((l) => (!opts.plain || l.keepInPlain) && layerActive(l, Rpx)).sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
   let nextLayer = 0;
   let lo = null;
   const upTo = (z) => {
@@ -196,13 +197,13 @@ export function drawStatic(ctx, vp, w, opts) {
   ctx.rect(0, 0, W, H);
   ctx.clip();
   drawRivers(ctx, w, { s, Rpx, lod, lens: !!opts.lens });
-  drawBorders(ctx, w, s, Rpx, !!opts.lens);
+  if (!opts.plain) drawBorders(ctx, w, s, Rpx, !!opts.lens);
   ctx.restore();
 
   // 6. City tiles.
   lap("rivers+borders");
   upTo(Z.CITIES);
-  drawCityTiles(ctx, w, Rpx, s, lod, opts.selectedCity || null, vp);
+  if (!opts.plain) drawCityTiles(ctx, w, Rpx, s, lod, opts.selectedCity || null, vp);
   lap("cities");
 
   // 7. Sea mist around the edges of the known world.
@@ -213,12 +214,12 @@ export function drawStatic(ctx, vp, w, opts) {
   // 8. Screen-space bits: resources, then the big state names.
   upTo(Z.RESOURCES);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const placed = opts.showResources && w.resources ? drawResources(ctx, vp, w, r0, r1, c0, c1, Rpx, opts.resourceFilter) : [];
+  const placed = !opts.plain && opts.showResources && w.resources ? drawResources(ctx, vp, w, r0, r1, c0, c1, Rpx, opts.resourceFilter) : [];
   if (opts.hits) opts.hits.resources = placed;
   lap("resources");
   upTo(Z.LABELS);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (opts.labels !== false) drawStateLabels(ctx, vp, w, Rpx);
+  if (opts.labels !== false && !opts.plain) drawStateLabels(ctx, vp, w, Rpx);
   lap("labels");
   upTo(Infinity);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

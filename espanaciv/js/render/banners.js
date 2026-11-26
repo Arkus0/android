@@ -153,7 +153,7 @@ function measure(ctx, city, yields, nation, L) {
     return { yd, t, w: ctx.measureText(t).width };
   });
   const yieldsW = parts.reduce((a, p) => a + L.yieldIcon + 2 + p.w + L.yieldGap, 0) - L.yieldGap;
-  const growthTxt = growth == null ? "" : `${growth >= 0 ? "+" : "−"}${Math.abs(growth * 100).toFixed(1)}%`;
+  const growthTxt = growth == null ? "" : `${growth >= 0 ? "+" : "−"}${Math.abs(growth * 100).toFixed(1).replace(".", ",")}%`;
   const growthW = growthTxt ? ctx.measureText(growthTxt).width : 0;
   ctx.restore();
   const spec = specialty(city, nation);

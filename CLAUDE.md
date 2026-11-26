@@ -318,5 +318,15 @@ Proyecto **independiente** del juego de letras: la España real dibujada como ma
   `https://android-coral-ten.vercel.app/espanaciv/`.
 - **Datos**: `espanaciv/data/*.json` los genera el pipeline Python de `tools/espanaciv/` (`fetch.py` →
   `worldcover.py` → `build.py`; necesita numpy, rasterio y affine). No editar los JSON a mano.
+- **Extensiones** (`espanaciv/js/ext/`): `cityView/` (vista de ciudad), `advisors/` (los 8 consejeros: vistas en
+  `advisors/views/`, modelo de datos en `advisors/core/data.js`), `layers/` e `inset/` (Canarias). Se activan en
+  `js/ext/index.js` (`MODULES`). Los textos de la interfaz están en español; los números con coma decimal.
+- **Juego «Hispania»** (`espanaciv/js/ext/game/`, botón «Jugar»): 4X por turnos original sobre el mapa real, de 2000 a. C.
+  a 2050 (calendario, eras, invasiones históricas, decisiones con etiquetas de identidad, gobiernos, estabilidad y la
+  crónica «tu España alternativa», todo como datos en `rules.js`). `rules.js`
+  (datos), `sim.js` (reglas, sin DOM; también corre en Node), `ai.js`, `render.js` (overlays), `ui.js`, `index.js`
+  (modo `game`). Usa `app.state.plainMap` (mapa sin capas de datos) y `app.hoverHook` (tooltip propio), añadidos al
+  motor. Para probar el equilibrio sin navegador: un script de Node que importe `sim.js` + `ai.js` y juegue solo con IAs.
+  No copiar nombres, personajes ni arte de juegos comerciales: los pueblos, unidades y maravillas son históricos.
 - **No mezclar**: el `sw.js` del juego ignora las rutas `/espanaciv/` (no las cachea). El test de humo
   (`test/smoke.js`) es solo del juego.
