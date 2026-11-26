@@ -52,10 +52,23 @@ contra la IA. La idea: construir tu propio país, decisión a decisión, hasta t
   Cartago, Roma, suevos y vándalos, visigodos, Bizancio, el ejército omeya, vikingos, almorávides, almohades,
   benimerines, la Gran Alianza, la Grande Armée… Si toman una ciudad **se quedan como un pueblo nuevo** (nace
   al-Ándalus, Hispania romana o un reino napoleónico); si resistes, la historia cambia.
-- **Decisiones**: los mercaderes fenicios, una nueva fe, fueros o centralismo, la peste, un navegante con un plan,
-  convivencia o unidad confesional, la imprenta, una constitución, la industria, el ancho de vía, monarquía o
-  república, Europa, la transición energética, la gran sequía, la inteligencia artificial… Cada elección tiene
-  efectos y deja una huella en la identidad de tu país (foral, atlántico, ilustrado, verde…).
+- **152 decisiones y sucesos** repartidos por todas las eras: los mercaderes fenicios, Viriato, una nueva fe, el
+  sepulcro del apóstol, fueros o centralismo, la peste negra, un navegante con un plan, convivencia o unidad
+  confesional, la imprenta, Lepanto, una constitución, la industria, el ancho de vía, monarquía o república,
+  Europa, la transición energética, la gran sequía, la inteligencia artificial… además de sucesos recurrentes
+  (cosechas, terremotos, riadas, disputas fronterizas, refugiados, espías, corrupción, huelgas) y eventos propios
+  de cada pueblo. Dependen de lo que has elegido antes (cadenas de consecuencias), de tu identidad, tu gobierno, tu
+  fe, tus guerras, tu estabilidad y de qué invasores se han quedado. Cada opción muestra sus efectos reales, que
+  escalan con tu economía, y deja huella en la identidad de tu país (foral, atlántico, ilustrado, verde…). Hay
+  hasta **uniones dinásticas** que suman a un reino vecino.
+- **Fe**: dioses antiguos, cristianismo, islam o Estado laico. Las ciudades conquistadas conservan su fe y se van
+  convirtiendo; muchas ciudades de otra fe restan estabilidad (menos si tu país es tolerante).
+- **Obreros y caminos**: campos de labor, minas, aserraderos, viñedos y olivares, dehesas y caminos (por los que se
+  va al doble de rápido; con el ferrocarril, al cuádruple).
+- **Comercio**: los mercaderes abren rutas entre tus ciudades o con las de tus vecinos en paz (más rentables y con
+  ciencia); una guerra las corta.
+- **Marina**: galeras, carabelas, galeones, navíos de línea, acorazados, submarinos y fragatas, que navegan,
+  combaten entre sí y bombardean costas.
 - **Gobierno y estabilidad**: de la jefatura tribal a la tecnocracia, pasando por la monarquía feudal, la república
   federal o la democracia. La estabilidad baja con las guerras y con un imperio demasiado grande; si se hunde, hay
   revueltas y las ciudades pueden independizarse.
@@ -73,7 +86,7 @@ contra la IA. La idea: construir tu propio país, decisión a decisión, hasta t
 Es un juego original del género 4X: toma sus mecánicas (eras, crisis, gobiernos, eventos narrativos, potencias que
 aparecen), no los nombres, personajes ni el arte de ningún juego comercial.
 
-Las reglas están en `js/ext/game/rules.js`, la simulación en `sim.js` (también corre en Node, sin navegador), la IA
+Las reglas están en `js/ext/game/rules.js`, los eventos en `events.js`, la simulación en `sim.js` (también corre en Node, sin navegador), la IA
 en `ai.js`, el dibujo en `render.js` y la interfaz en `ui.js`. La geografía del juego (`data/game.json`: salidas,
 puntos de entrada de las invasiones, recursos, nombres y sitios de maravillas) la genera
 `tools/espanaciv/build_game.py` a partir de `counties.json` y `wonders.json`.

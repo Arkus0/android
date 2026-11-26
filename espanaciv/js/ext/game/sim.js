@@ -384,7 +384,7 @@ export function playerTotals(G, M, p) {
 export function upkeep(G, p) {
   const nu = G.units.filter((u) => u.owner === p && UNITS[u.type].cls !== "civil").length;
   const free = 2 + playerCities(G, p).length;
-  return Math.max(0, nu - free);
+  return Math.max(0, nu - free) * (1 + eraOf(G.players[p])); // las soldadas suben con la era
 }
 
 // --- construcción -----------------------------------------------------------------------------------------------
@@ -450,7 +450,7 @@ export function buyCost(G, city) {
   const it = city.build;
   if (!it || it.kind === "trade" || it.kind === "wonder") return null;
   const left = Math.max(0, itemCost(G, it, city.owner) - city.prod);
-  return Math.round(left * 2 + 10);
+  return Math.round(left * 3 + 20);
 }
 export function buy(G, M, city) {
   const cost = buyCost(G, city);
@@ -638,7 +638,7 @@ export function availableTechs(P) {
   return Object.keys(TECHS).filter((t) => !has(P, t) && TECHS[t].req.every((r) => has(P, r)));
 }
 // Las tecnologías se encarecen a medida que se conocen más (el ritmo del juego: la imprenta, hacia el turno 200).
-export function techCost(P, t) { return Math.round(TECHS[t].cost * (1.2 + 0.14 * P.techs.length) * (1 - (P.techBoost?.[t] || 0))); }
+export function techCost(P, t) { return Math.round(TECHS[t].cost * (1.2 + 0.17 * P.techs.length) * (1 - (P.techBoost?.[t] || 0))); }
 export function turnsTo(need, per) { return per > 0 ? Math.max(1, Math.ceil(need / per)) : Infinity; }
 
 // --- visibilidad ------------------------------------------------------------------------------------------------
@@ -1245,7 +1245,7 @@ export function routeYield(G, M, r) {
   const a = cityById(G, r.from), b = cityById(G, r.to);
   if (!a || !b) return { g: 0, s: 0 };
   const foreign = a.owner !== b.owner;
-  let g = 2 + Math.floor(dist(M, a.cell, b.cell) / 6) + Math.floor(b.pop / 3);
+  let g = 1 + Math.floor(dist(M, a.cell, b.cell) / 9) + Math.floor(b.pop / 4);
   if (foreign) g *= 1.5;
   return { g: Math.round(g), s: foreign ? 1 + Math.floor(eraOf(G.players[a.owner]) / 2) : 0 };
 }
