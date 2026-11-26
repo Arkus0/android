@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <script>
+    // Las rutas (css/, js/, data/) son relativas: /espanaciv sin barra final las rompería.
+    if (/\/espanaciv$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>España Civ</title>
+  <meta name="description" content="La España real dibujada como un mapa de estrategia 4X: terreno hexagonal, ciudades con rendimientos, lentes y recursos, todo con datos públicos (INE, Eurostat, IGN, ESA, NOAA).">
+  <meta name="theme-color" content="#131e2a">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23120d06'/%3E%3Ccircle cx='32' cy='32' r='29' fill='%23c9a45c'/%3E%3Ccircle cx='32' cy='32' r='24' fill='%23aa151b'/%3E%3Crect x='8' y='24' width='48' height='16' fill='%23f1bf00'/%3E%3Cpath fill='%23aa151b' d='M24 28h6v8h-6z'/%3E%3C/svg%3E">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="España Civ">
+  <meta property="og:title" content="España como un mapa de juego de estrategia">
+  <meta property="og:description" content="La economía real de España dibujada como un mapa de estrategia 4X, con datos públicos.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand" title="España"><span class="brand-emblem" aria-hidden="true">♛</span><span class="brand-text">España</span></div>
+    <div id="yields" class="yields" aria-label="Rendimientos nacionales"></div>
+    <div class="spacer"></div>
+    <div class="search" role="search">
+      <span class="search-ic" aria-hidden="true"></span>
+      <input id="search-input" type="search" placeholder="Buscar ciudades y provincias" autocomplete="off" spellcheck="false"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" aria-label="Buscar ciudades y provincias (/ o Ctrl K)">
+      <kbd class="search-kbd" aria-hidden="true">/</kbd>
+    </div>
+    <div id="turn" class="turn"></div>
+    <div class="tb-buttons">
+      <button id="btn-share" class="btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Compartir esta vista" title="Compartir: copiar un enlace o descargar una imagen"></button>
+      <button id="btn-help" class="btn btn-icon" aria-label="Ayuda de teclado y ratón" title="Ayuda (?)"></button>
+      <button id="btn-pedia" class="btn" aria-label="Abrir el Almanaque" title="Qué significa cada número y de dónde sale"></button>
+    </div>
+  </header>
+
+  <canvas id="map" role="img" aria-label="Mapa hexagonal de España"></canvas>
+
+  <div id="tooltip" class="tooltip" hidden></div>
+  <aside id="city-panel" class="panel" hidden role="region" aria-label="Detalles"></aside>
+
+  <div id="lens-area">
+    <div id="lens-picker" class="panel lens-picker" hidden role="dialog" aria-label="Elegir una lente"></div>
+    <div id="legend" class="panel legend" hidden role="group" aria-label="Leyenda de la lente"></div>
+    <div id="lens-dock" class="panel lens-dock" role="toolbar" aria-label="Lentes del mapa">
+      <button id="btn-res" class="lens-btn res-toggle" aria-pressed="true" aria-label="Recursos en las casillas (R)" title="Mostrar u ocultar los recursos (R)" hidden></button>
+      <div id="lens-quick" class="lens-quick"></div>
+      <button id="btn-lenses" class="lens-btn lens-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="lens-picker"></button>
+    </div>
+  </div>
+
+  <div id="minimap-wrap" class="panel"><canvas id="minimap" aria-label="Minimapa: pulsa para saltar" role="img"></canvas></div>
+  <button id="btn-minimap" class="panel minimap-toggle" aria-pressed="false" aria-controls="minimap-wrap" aria-label="Mostrar el minimapa"></button>
+
+  <div id="search-results" class="panel search-results" role="listbox" aria-label="Resultados de búsqueda" hidden></div>
+  <div id="share-pop" class="panel share-pop" role="dialog" aria-label="Compartir" hidden></div>
+  <div id="yield-report" class="panel yield-report" role="dialog" aria-label="Informe nacional" tabindex="-1" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="pedia" class="modal" hidden>
+    <div class="modal-card panel" role="dialog" aria-modal="true" aria-label="Almanaque">
+      <button class="close icon-btn" data-close aria-label="Cerrar el Almanaque">✕</button>
+      <nav id="pedia-nav" aria-label="Páginas del Almanaque"></nav>
+      <article id="pedia-body"></article>
+    </div>
+  </div>
+
+  <div id="help" class="modal" hidden>
+    <div class="help-card panel" role="dialog" aria-modal="true" aria-labelledby="help-title"></div>
+  </div>
+
+  <div id="loading">Cartografiando el terreno…</div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

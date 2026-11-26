@@ -1,0 +1,81 @@
+"""Tablas fijas: provincias (código INE, nombre corto, sigla de matrícula clásica, comunidad) y CCAA."""
+
+# código INE: (nombre corto para el mapa, nombre oficial, sigla, código CCAA)
+PROVINCIAS = {
+    "01": ("Álava", "Araba/Álava", "VI", "16"),
+    "02": ("Albacete", "Albacete", "AB", "08"),
+    "03": ("Alicante", "Alicante/Alacant", "A", "10"),
+    "04": ("Almería", "Almería", "AL", "01"),
+    "05": ("Ávila", "Ávila", "AV", "07"),
+    "06": ("Badajoz", "Badajoz", "BA", "11"),
+    "07": ("Baleares", "Illes Balears", "IB", "04"),
+    "08": ("Barcelona", "Barcelona", "B", "09"),
+    "09": ("Burgos", "Burgos", "BU", "07"),
+    "10": ("Cáceres", "Cáceres", "CC", "11"),
+    "11": ("Cádiz", "Cádiz", "CA", "01"),
+    "12": ("Castellón", "Castellón/Castelló", "CS", "10"),
+    "13": ("Ciudad Real", "Ciudad Real", "CR", "08"),
+    "14": ("Córdoba", "Córdoba", "CO", "01"),
+    "15": ("A Coruña", "A Coruña", "C", "12"),
+    "16": ("Cuenca", "Cuenca", "CU", "08"),
+    "17": ("Girona", "Girona", "GI", "09"),
+    "18": ("Granada", "Granada", "GR", "01"),
+    "19": ("Guadalajara", "Guadalajara", "GU", "08"),
+    "20": ("Gipuzkoa", "Gipuzkoa", "SS", "16"),
+    "21": ("Huelva", "Huelva", "H", "01"),
+    "22": ("Huesca", "Huesca", "HU", "02"),
+    "23": ("Jaén", "Jaén", "J", "01"),
+    "24": ("León", "León", "LE", "07"),
+    "25": ("Lleida", "Lleida", "L", "09"),
+    "26": ("La Rioja", "La Rioja", "LO", "17"),
+    "27": ("Lugo", "Lugo", "LU", "12"),
+    "28": ("Madrid", "Madrid", "M", "13"),
+    "29": ("Málaga", "Málaga", "MA", "01"),
+    "30": ("Murcia", "Murcia", "MU", "14"),
+    "31": ("Navarra", "Navarra", "NA", "15"),
+    "32": ("Ourense", "Ourense", "OR", "12"),
+    "33": ("Asturias", "Asturias", "O", "03"),
+    "34": ("Palencia", "Palencia", "P", "07"),
+    "35": ("Las Palmas", "Las Palmas", "GC", "05"),
+    "36": ("Pontevedra", "Pontevedra", "PO", "12"),
+    "37": ("Salamanca", "Salamanca", "SA", "07"),
+    "38": ("Santa Cruz de Tenerife", "Santa Cruz de Tenerife", "TF", "05"),
+    "39": ("Cantabria", "Cantabria", "S", "06"),
+    "40": ("Segovia", "Segovia", "SG", "07"),
+    "41": ("Sevilla", "Sevilla", "SE", "01"),
+    "42": ("Soria", "Soria", "SO", "07"),
+    "43": ("Tarragona", "Tarragona", "T", "09"),
+    "44": ("Teruel", "Teruel", "TE", "02"),
+    "45": ("Toledo", "Toledo", "TO", "08"),
+    "46": ("Valencia", "Valencia/València", "V", "10"),
+    "47": ("Valladolid", "Valladolid", "VA", "07"),
+    "48": ("Bizkaia", "Bizkaia", "BI", "16"),
+    "49": ("Zamora", "Zamora", "ZA", "07"),
+    "50": ("Zaragoza", "Zaragoza", "Z", "02"),
+    "51": ("Ceuta", "Ceuta", "CE", "18"),
+    "52": ("Melilla", "Melilla", "ML", "19"),
+}
+
+CCAA = {
+    "01": "Andalucía", "02": "Aragón", "03": "Asturias", "04": "Illes Balears", "05": "Canarias", "06": "Cantabria",
+    "07": "Castilla y León", "08": "Castilla-La Mancha", "09": "Cataluña", "10": "Comunitat Valenciana",
+    "11": "Extremadura", "12": "Galicia", "13": "Comunidad de Madrid", "14": "Región de Murcia", "15": "Navarra",
+    "16": "País Vasco", "17": "La Rioja", "18": "Ceuta", "19": "Melilla",
+}
+
+# Provincias NUTS 3 (Eurostat) → código INE. Baleares y Canarias están partidas en islas en NUTS 3.
+NUTS3 = {
+    "ES111": "15", "ES112": "27", "ES113": "32", "ES114": "36", "ES120": "33", "ES130": "39", "ES211": "01",
+    "ES212": "20", "ES213": "48", "ES220": "31", "ES230": "26", "ES241": "22", "ES242": "44", "ES243": "50",
+    "ES300": "28", "ES411": "05", "ES412": "09", "ES413": "24", "ES414": "34", "ES415": "37", "ES416": "40",
+    "ES417": "42", "ES418": "47", "ES419": "49", "ES421": "02", "ES422": "13", "ES423": "16", "ES424": "19",
+    "ES425": "45", "ES431": "06", "ES432": "10", "ES511": "08", "ES512": "17", "ES513": "25", "ES514": "43",
+    "ES521": "03", "ES522": "12", "ES523": "46", "ES531": "07", "ES532": "07", "ES533": "07", "ES611": "04",
+    "ES612": "11", "ES613": "14", "ES614": "18", "ES615": "21", "ES616": "23", "ES617": "29", "ES618": "41",
+    "ES620": "30", "ES630": "51", "ES640": "52", "ES703": "38", "ES704": "35", "ES705": "35", "ES706": "38",
+    "ES707": "38", "ES708": "35", "ES709": "38",
+}
+
+# Ríos de Natural Earth: nombres que llegan mal codificados o mal etiquetados.
+RIO_NOMBRE = {"Mio": "Miño", "Minho": "Miño", "Zncara": "Záncara", "Tejo": "Tajo", "Douro": "Duero",
+              "Guadiana Menor": "Guadiana Menor"}
