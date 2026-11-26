@@ -101,7 +101,7 @@ export const RELIEF = {
 };
 export const WATER = {
   1: { name: "Mar abierto", f: 1, p: 0, g: 0 },
-  2: { name: "Costa", f: 1, p: 0, g: 1 },
+  2: { name: "Costa", f: 2, p: 0, g: 1 },
   3: { name: "Lago", f: 2, p: 0, g: 1 },
 };
 
@@ -155,7 +155,32 @@ export const UNITS = {
   aviones: { name: "Aviación", emoji: "✈️", cls: "ranged", str: 40, rstr: 115, range: 5, mov: 6, cost: 480, tech: "aviacion", desc: "Ataca a cinco casillas sin recibir daño." },
   drones: { name: "Drones", emoji: "🛸", cls: "ranged", str: 50, rstr: 132, range: 4, mov: 5, cost: 520, tech: "robotica", desc: "Ataque de precisión a distancia." },
   robots: { name: "Infantería robotizada", emoji: "🤖", cls: "melee", str: 135, mov: 3, cost: 600, tech: "robotica", desc: "Exoesqueletos y robots de combate." },
+  // civiles especiales
+  obreros: { name: "Obreros", emoji: "👷", cls: "civil", worker: true, str: 0, mov: 2, cost: 30, desc: "Construyen granjas, minas, aserraderos, viñedos, dehesas y caminos en tu territorio." },
+  mercaderes: { name: "Mercaderes", emoji: "🧳", cls: "civil", trade: true, str: 0, mov: 2, cost: 60, tech: "moneda", desc: "Llévalos junto a otra ciudad (tuya o de un vecino en paz) para abrir una ruta comercial." },
+  // marina: solo navegan; las que tienen tiro bombardean costas y barcos a distancia
+  galera: { name: "Galera", emoji: "🚣", cls: "naval", str: 24, mov: 3, cost: 50, tech: "navegacion", obs: "oceanica", desc: "Barco de remos para la costa. Ataca a otros barcos." },
+  carabela: { name: "Carabela", emoji: "⛵", cls: "naval", str: 28, mov: 5, cost: 70, sight: 3, tech: "oceanica", obs: "vapor", desc: "Rápida y con vista larga: para explorar los mares." },
+  galeon: { name: "Galeón", emoji: "🚢", cls: "naval", str: 40, rstr: 42, range: 2, mov: 4, cost: 120, tech: "oceanica", obs: "metalurgia", desc: "Barco de guerra con cañones: bombardea a dos casillas." },
+  navio: { name: "Navío de línea", emoji: "🚢", cls: "naval", str: 55, rstr: 64, range: 2, mov: 4, cost: 180, tech: "metalurgia", obs: "electricidad", desc: "Tres puentes de cañones." },
+  acorazado: { name: "Acorazado", emoji: "🛳️", cls: "naval", str: 85, rstr: 95, range: 3, mov: 5, cost: 320, tech: "electricidad", obs: "informatica", desc: "Blindado y con cañones de gran calibre." },
+  submarino: { name: "Submarino", emoji: "🦈", cls: "naval", str: 80, rstr: 105, range: 2, mov: 5, cost: 340, tech: "motor", desc: "Ataca barcos y costas desde el fondo del mar." },
+  fragata: { name: "Fragata moderna", emoji: "🛥️", cls: "naval", str: 105, rstr: 128, range: 3, mov: 6, cost: 450, tech: "informatica", desc: "Misiles y radar." },
 };
+
+// --- mejoras del terreno (las construyen los obreros) ------------------------------------------------------------
+// where: llano (tierra de labor) | mina (colinas, montañas o mineral) | bosque | cultivo (olivo, vino, seda, azafrán)
+// | pasto (pastizal o ganado). up: rendimiento extra con una tecnología.
+export const IMPROVEMENTS = {
+  granja: { name: "Campos de labor", emoji: "🌱", turns: 4, where: "llano", f: 1, up: { tech: "vapor", f: 1 } },
+  mina: { name: "Mina", emoji: "⚒️", turns: 5, where: "mina", tech: "mineria", p: 1, up: { tech: "metalurgia", p: 1 } },
+  aserradero: { name: "Aserradero", emoji: "🪓", turns: 4, where: "bosque", tech: "hierro", p: 1, up: { tech: "vapor", p: 1 } },
+  cultivo: { name: "Viñedo u olivar", emoji: "🍷", turns: 5, where: "cultivo", tech: "alfareria", g: 2, up: { tech: "economia", g: 1 } },
+  dehesa: { name: "Dehesa", emoji: "🐖", turns: 4, where: "pasto", tech: "ganaderia", f: 1, g: 1, up: { tech: "ferrocarril", f: 1 } },
+};
+export const MINERALS = ["plata", "oro", "cobre", "hierro", "estano", "mercurio", "sal", "marmol"];
+export const PLANTS = ["olivo", "vino", "seda", "azafran"];
+export const ROAD = { name: "Camino", emoji: "🛤️", turns: 3, tech: "doma", desc: "Mover por caminos cuesta la mitad (con el ferrocarril, la cuarta parte)." };
 
 // --- edificios --------------------------------------------------------------------------------------------------
 // f, p, g, s, c: rendimiento fijo; gPct/sPct/pPct: porcentaje; housing: vivienda; def/hp: defensa; stab: estabilidad.
@@ -303,207 +328,52 @@ export const GOVS = {
 // dificultad); units: unidades (se usan las mejores que permitan sus tecnologías); settle: si toman una ciudad, se
 // quedan como un pueblo más con este nombre; techs: tecnologías con las que llegan (además de las de su época).
 export const INVASIONS = [
-  { id: "celtas", year: -900, name: "Celtas de allende los Pirineos", short: "Celtas", color: "#2e7d32", ink: "#fff", at: ["pirineo_oeste", "pirineo_este"], n: 4,
+  { id: "celtas", faith: "antiguos", year: -900, name: "Celtas de allende los Pirineos", short: "Celtas", color: "#2e7d32", ink: "#fff", at: ["pirineo_oeste", "pirineo_este"], n: 4,
     units: ["guerreros", "lanceros", "jinetes"], settle: "Celtas",
     text: "Pueblos de lengua celta cruzan los Pirineos buscando tierras. Si toman una ciudad, se quedarán." },
-  { id: "cartago", year: -237, name: "Cartago (los Barca)", short: "Cartagineses", color: "#6d4c41", ink: "#fff", at: ["cadiz", "cartagena"], n: 7,
+  { id: "cartago", faith: "antiguos", year: -237, name: "Cartago (los Barca)", short: "Cartagineses", color: "#6d4c41", ink: "#fff", at: ["cadiz", "cartagena"], n: 7,
     units: ["falcateros", "honderos", "jinetes", "catapulta"], settle: "Cartago hispana",
     text: "Amílcar Barca desembarca en Gadir para hacerse con las minas de plata de la Península." },
-  { id: "roma", year: -218, name: "Roma", short: "Romanos", color: "#8e1b2e", ink: "#fff", at: ["emporion", "tarraco"], n: 12,
+  { id: "roma", faith: "antiguos", year: -218, name: "Roma", short: "Romanos", color: "#8e1b2e", ink: "#fff", at: ["emporion", "tarraco"], n: 12,
     units: ["legion", "catapulta", "jinetes", "honderos"], settle: "Hispania romana", techs: ["leyes", "ingenieria"],
     text: "Las legiones de Escipión desembarcan en Emporion. Roma tardará dos siglos en dominar Hispania… si la dejas." },
-  { id: "germanos", year: 409, name: "Suevos, vándalos y alanos", short: "Germanos", color: "#5d4037", ink: "#fff", at: ["pirineo_oeste", "pirineo_centro"], n: 7,
+  { id: "germanos", faith: "cristiana", year: 409, name: "Suevos, vándalos y alanos", short: "Germanos", color: "#5d4037", ink: "#fff", at: ["pirineo_oeste", "pirineo_centro"], n: 7,
     units: ["legion", "jinetes", "falcateros"], settle: "Reino suevo",
     text: "El Imperio se desmorona: pueblos germánicos atraviesan los pasos del Pirineo." },
-  { id: "visigodos", year: 456, name: "Visigodos", short: "Visigodos", color: "#455a64", ink: "#fff", at: ["pirineo_este", "pirineo_centro"], n: 10,
+  { id: "visigodos", faith: "cristiana", year: 456, name: "Visigodos", short: "Visigodos", color: "#455a64", ink: "#fff", at: ["pirineo_este", "pirineo_centro"], n: 10,
     units: ["legion", "jinetes", "falcateros", "catapulta"], settle: "Reino visigodo",
     text: "Los visigodos entran desde la Galia para quedarse: buscan una capital en la Meseta." },
-  { id: "bizancio", year: 552, name: "Bizancio", short: "Bizantinos", color: "#7b1fa2", ink: "#fff", at: ["cartagena", "malaga"], n: 6,
+  { id: "bizancio", faith: "cristiana", year: 552, name: "Bizancio", short: "Bizantinos", color: "#7b1fa2", ink: "#fff", at: ["cartagena", "malaga"], n: 6,
     units: ["legion", "honderos", "catapulta"], settle: "Spania bizantina",
     text: "Justiniano quiere recuperar Occidente: sus tropas desembarcan en la costa del sureste." },
-  { id: "omeyas", year: 711, name: "Ejército omeya", short: "Omeyas", color: "#00897b", ink: "#fff", at: ["estrecho", "estrecho"], n: 14,
+  { id: "omeyas", faith: "islamica", year: 711, name: "Ejército omeya", short: "Omeyas", color: "#00897b", ink: "#fff", at: ["estrecho", "estrecho"], n: 14,
     units: ["jinetes", "falcateros", "honderos", "catapulta", "caballeros"], settle: "Al-Ándalus", techs: ["teologia", "matematicas"],
     text: "Tariq cruza el Estrecho con un ejército. Si toma ciudades, nacerá al-Ándalus." },
-  { id: "vikingos", year: 844, name: "Vikingos", short: "Vikingos", color: "#78909c", ink: "#fff", at: ["coruna", "sevilla"], n: 5,
+  { id: "vikingos", faith: "antiguos", year: 844, name: "Vikingos", short: "Vikingos", color: "#78909c", ink: "#fff", at: ["coruna", "sevilla"], n: 5,
     units: ["falcateros", "almogavares", "legion"], settle: "Normandos",
     text: "Naves normandas asoman por la costa gallega y remontan el Guadalquivir." },
-  { id: "almoravides", year: 1086, name: "Almorávides", short: "Almorávides", color: "#bf8f00", ink: "#14202c", at: ["estrecho", "malaga"], n: 10,
+  { id: "almoravides", faith: "islamica", year: 1086, name: "Almorávides", short: "Almorávides", color: "#bf8f00", ink: "#14202c", at: ["estrecho", "malaga"], n: 10,
     units: ["caballeros", "ballesteros", "almogavares", "catapulta"], settle: "Imperio almorávide",
     text: "Los almorávides cruzan el Estrecho llamados por las taifas… y vienen a quedarse." },
-  { id: "almohades", year: 1147, name: "Almohades", short: "Almohades", color: "#9e9d24", ink: "#14202c", at: ["estrecho", "cadiz"], n: 10,
+  { id: "almohades", faith: "islamica", year: 1147, name: "Almohades", short: "Almohades", color: "#9e9d24", ink: "#14202c", at: ["estrecho", "cadiz"], n: 10,
     units: ["caballeros", "ballesteros", "almogavares", "catapulta"], settle: "Imperio almohade",
     text: "Una nueva ola desde el Magreb: el califato almohade desembarca en el sur." },
-  { id: "benimerines", year: 1340, name: "Benimerines", short: "Benimerines", color: "#a1887f", ink: "#14202c", at: ["estrecho"], n: 8,
+  { id: "benimerines", faith: "islamica", year: 1340, name: "Benimerines", short: "Benimerines", color: "#a1887f", ink: "#14202c", at: ["estrecho"], n: 8,
     units: ["caballeros", "ballesteros", "almogavares"], settle: "Reino benimerín",
     text: "Los benimerines intentan una vez más cruzar el Estrecho." },
-  { id: "inglaterra", year: 1702, name: "La Gran Alianza", short: "Aliados", color: "#c62828", ink: "#fff", at: ["cadiz", "estrecho", "coruna"], n: 9,
+  { id: "inglaterra", faith: "cristiana", year: 1702, name: "La Gran Alianza", short: "Aliados", color: "#c62828", ink: "#fff", at: ["cadiz", "estrecho", "coruna"], n: 9,
     units: ["tercios", "dragones", "canones"], settle: "Gibraltar",
     text: "Guerra de Sucesión: una flota anglo-holandesa ataca la costa." },
-  { id: "francia", year: 1808, name: "La Grande Armée", short: "Napoleónicos", color: "#1a237e", ink: "#fff", at: ["pirineo_oeste", "pirineo_este", "irun"], n: 14,
+  { id: "francia", faith: "cristiana", year: 1808, name: "La Grande Armée", short: "Napoleónicos", color: "#1a237e", ink: "#fff", at: ["pirineo_oeste", "pirineo_este", "irun"], n: 14,
     units: ["fusileros", "dragones", "canones", "tercios"], settle: "Reino napoleónico", techs: ["ilustracion", "metalurgia"],
     text: "Napoleón cruza los Pirineos con el mayor ejército de Europa." },
-  { id: "hijos", year: 1823, name: "Los Cien Mil Hijos de San Luis", short: "Franceses", color: "#3949ab", ink: "#fff", at: ["irun", "pirineo_este"], n: 10,
+  { id: "hijos", faith: "cristiana", year: 1823, name: "Los Cien Mil Hijos de San Luis", short: "Franceses", color: "#3949ab", ink: "#fff", at: ["irun", "pirineo_este"], n: 10,
     units: ["fusileros", "dragones", "canones"], settle: "Protectorado francés",
     text: "Las potencias absolutistas envían un ejército francés para imponer su orden." },
 ];
 
-// --- decisiones (eventos narrativos) -------------------------------------------------------------------------
-// Cada pueblo vive cada evento una vez, dentro de su ventana de años. Efectos (todos opcionales): gold, science,
-// culture (puntos), tech (la regala), stab (estabilidad, ±), mods ({gPct, sPct, pPct, cPct, stab…} permanentes),
-// temp ({mods, turns}), units ([tipo, n]), plague (pierde esta parte de la población), gov (cambia de gobierno),
-// tag (identidad de tu país, para la crónica final), name (pide nombre para el país).
-export const TAGS = {
-  comercial: "Mercantil", maritima: "Marítimo", guerrera: "Guerrero", romanizada: "Romanizado", indomita: "Indómito",
-  tolerante: "Tolerante", confesional: "Confesional", tradicional: "Tradicional", sabia: "Sabio", foral: "Foral",
-  centralista: "Centralista", atlantica: "Atlántico", mediterranea: "Mediterráneo", ilustrada: "Ilustrado",
-  liberal: "Liberal", absolutista: "Absolutista", industrial: "Industrial", agraria: "Agrario", europeista: "Europeísta",
-  soberanista: "Soberanista", verde: "Verde", nuclear: "Nuclear", tecnologica: "Tecnológico", humanista: "Humanista", turistica: "Turístico",
-};
-export const EVENTS = [
-  { id: "nombre1", from: -1700, to: -900, title: "¿Cómo se llama tu pueblo?", name: true,
-    text: "Tus aldeas ya se reconocen como un solo pueblo. Es hora de darle nombre a tu tierra.", choices: [{ label: "Elegir nombre", eff: {} }] },
-  { id: "metal", from: -1800, to: -1100, title: "La fiebre del metal",
-    text: "Los mineros han encontrado vetas de cobre y estaño. ¿Volcamos el poblado en la metalurgia?",
-    choices: [
-      { label: "Fundiciones en cada aldea", desc: "+15 % ⚙️ durante 20 turnos.", eff: { temp: { mods: { pPct: 0.15 }, turns: 20 }, tag: "industrial" } },
-      { label: "Comerciar el metal", desc: "+60 💰.", eff: { gold: 60, tag: "comercial" } },
-    ] },
-  { id: "fenicios", from: -850, to: -550, coastal: true, title: "Mercaderes fenicios",
-    text: "Unas naves de Tiro piden levantar una factoría en tu costa para comerciar plata y púrpura.",
-    choices: [
-      { label: "Aceptar la factoría", desc: "+2 💰 permanentes por ciudad costera y avanzas en Escritura.", eff: { mods: { coastG: 2 }, techPart: "escritura", tag: "comercial" } },
-      { label: "Comerciar solo en tus puertos", desc: "+40 💰.", eff: { gold: 40, tag: "maritima" } },
-      { label: "Expulsarlos", desc: "+8 de estabilidad (orgullo) y +1 🎭 por ciudad.", eff: { stab: 8, mods: { cityC: 1 }, tag: "indomita" } },
-    ] },
-  { id: "griegos", from: -600, to: -350, coastal: true, title: "Colonos griegos",
-    text: "Navegantes de Focea fundan una colonia junto a tu costa. Traen moneda, vino y filosofía.",
-    choices: [
-      { label: "Comerciar con ellos", desc: "Avanzas en Moneda y +10 % 💰 durante 30 turnos.", eff: { techPart: "moneda", temp: { mods: { gPct: 0.1 }, turns: 30 }, tag: "mediterranea" } },
-      { label: "Aprender de sus sabios", desc: "Avanzas en Teatro y poesía; +1 🔬 por ciudad.", eff: { techPart: "drama", mods: { cityS: 1 }, tag: "sabia" } },
-    ] },
-  { id: "roma_pacto", from: -210, to: -100, needInvader: "roma", title: "Roma propone un pacto",
-    text: "Los legados romanos ofrecen hacerte «aliado y amigo del pueblo romano». A cambio, pagarás tributo y adoptarás sus leyes.",
-    choices: [
-      { label: "Aceptar: federados de Roma", desc: "Paz con Roma, avanzas en Derecho e Ingeniería; −10 % 💰 (tributo).", eff: { peaceWith: "roma", techPart: ["leyes", "ingenieria"], mods: { gPct: -0.1 }, tag: "romanizada" } },
-      { label: "Resistir como Numancia", desc: "+15 % de fuerza defensiva en tus ciudades y +10 de estabilidad; la guerra sigue.", eff: { mods: { defPct: 0.15 }, stab: 10, tag: "indomita" } },
-    ] },
-  { id: "fe", from: 250, to: 600, title: "Una nueva fe",
-    text: "Una religión llegada de Oriente gana fieles en tus ciudades. Los viejos sacerdotes se inquietan.",
-    choices: [
-      { label: "Hacerla oficial", desc: "+2 🎭 por ciudad y +6 de estabilidad; −5 % 🔬.", eff: { mods: { cityC: 2, sPct: -0.05 }, stab: 6, tag: "confesional" } },
-      { label: "Libertad de cultos", desc: "+1 🔬 y +1 🎭 por ciudad; −4 de estabilidad.", eff: { mods: { cityS: 1, cityC: 1 }, stab: -4, tag: "tolerante" } },
-      { label: "Fieles a los dioses antiguos", desc: "+8 de estabilidad.", eff: { stab: 8, tag: "tradicional" } },
-    ] },
-  { id: "nombre2", from: 500, to: 900, title: "Un reino con nombre", name: true,
-    text: "Tus fronteras ya son las de un reino. ¿Cómo se llamará en las crónicas?", choices: [{ label: "Elegir nombre", eff: {} }] },
-  { id: "traductores", from: 900, to: 1250, title: "Sabios de tres culturas",
-    text: "Sabios cristianos, judíos y musulmanes ofrecen traducir los libros de los antiguos griegos y persas.",
-    choices: [
-      { label: "Financiar la escuela", desc: "−80 💰; +2 🔬 por ciudad.", eff: { gold: -80, mods: { cityS: 2 }, tag: "sabia" } },
-      { label: "Prioridad a la guerra", desc: "+3 ⚔️ al atacar.", eff: { mods: { att: 3 }, tag: "guerrera" } },
-    ] },
-  { id: "fueros", from: 1050, to: 1400, minCities: 4, title: "Fueros o corona",
-    text: "Tus ciudades piden respetar sus fueros y costumbres. Tus consejeros prefieren un poder central fuerte.",
-    choices: [
-      { label: "Respetar los fueros", desc: "Mitad de penalización por extensión y +5 de estabilidad; −1 ⚙️ en la capital.", eff: { mods: { sprawl: -0.5, capP: -1 }, stab: 5, tag: "foral" } },
-      { label: "Centralizar el reino", desc: "+4 ⚙️ en la capital y +10 % 💰; −6 de estabilidad.", eff: { mods: { capP: 4, gPct: 0.1 }, stab: -6, tag: "centralista" } },
-    ] },
-  { id: "peste", from: 1340, to: 1360, title: "La peste negra", crisis: true,
-    text: "Una epidemia terrible llega por los puertos. Mueren pueblos enteros.",
-    choices: [
-      { label: "Cerrar puertos y cuarentenas", desc: "−100 💰; pierdes el 10 % de la población.", eff: { gold: -100, plague: 0.1 } },
-      { label: "Confiar en la providencia", desc: "Pierdes el 25 % de la población; −5 de estabilidad.", eff: { plague: 0.25, stab: -5 } },
-    ] },
-  { id: "navegante", from: 1470, to: 1530, coastal: true, title: "Un navegante con un plan",
-    text: "Un marino genovés jura que se puede llegar a las Indias navegando hacia el oeste. Pide tres naves.",
-    choices: [
-      { label: "Financiar la expedición", desc: "−150 💰; +6 💰 por ciudad costera durante 60 turnos y avanzas en Navegación oceánica.", eff: { gold: -150, temp: { mods: { coastG: 6 }, turns: 60 }, techPart: "oceanica", tag: "atlantica" } },
-      { label: "Mirar al Mediterráneo", desc: "+10 % 💰 permanente.", eff: { mods: { gPct: 0.1 }, tag: "mediterranea" } },
-    ] },
-  { id: "convivencia", from: 1480, to: 1620, minCities: 3, title: "Convivencia o unidad confesional",
-    text: "Una parte de tus súbditos profesa otra fe. Los partidarios de la unidad religiosa presionan.",
-    choices: [
-      { label: "Mantener la convivencia", desc: "+10 % 🔬 y +10 % 💰 permanentes; −8 de estabilidad ahora.", eff: { mods: { sPct: 0.1, gPct: 0.1 }, stab: -8, tag: "tolerante" } },
-      { label: "Imponer la unidad confesional", desc: "+8 de estabilidad; −10 % 🔬 y −10 % 💰 permanentes.", eff: { mods: { sPct: -0.1, gPct: -0.1 }, stab: 8, tag: "confesional" } },
-    ] },
-  { id: "censura", from: 1520, to: 1700, title: "Los libros y la imprenta",
-    text: "Las imprentas multiplican libros, panfletos y herejías. ¿Censura o libertad?",
-    choices: [
-      { label: "Libertad de imprenta", desc: "+1 🔬 y +1 🎭 por ciudad; −4 de estabilidad.", eff: { mods: { cityS: 1, cityC: 1 }, stab: -4, tag: "humanista" } },
-      { label: "Índice de libros prohibidos", desc: "+6 de estabilidad; −8 % 🔬.", eff: { mods: { sPct: -0.08 }, stab: 6, tag: "confesional" } },
-    ] },
-  { id: "nombre3", from: 1500, to: 1750, title: "El nombre del Estado", name: true,
-    text: "Embajadores de toda Europa necesitan un nombre para tu Estado. ¿Cómo lo llamarán los mapas?", choices: [{ label: "Elegir nombre", eff: {} }] },
-  { id: "ilustracion", from: 1740, to: 1800, title: "Las luces",
-    text: "Reformistas ilustrados proponen academias, canales y caminos. La vieja nobleza se resiste.",
-    choices: [
-      { label: "Despotismo ilustrado", desc: "+15 % 🔬 durante 30 turnos y +1 🎭 por ciudad.", eff: { temp: { mods: { sPct: 0.15 }, turns: 30 }, mods: { cityC: 1 }, tag: "ilustrada" } },
-      { label: "Dejar las cosas como están", desc: "+6 de estabilidad.", eff: { stab: 6, tag: "tradicional" } },
-    ] },
-  { id: "constitucion", from: 1808, to: 1850, title: "Una constitución",
-    text: "Las Cortes reunidas en la costa redactan una constitución que proclama la soberanía nacional.",
-    choices: [
-      { label: "Jurar la constitución", desc: "Pasas a monarquía parlamentaria (si la conoces), +10 % 🔬 y 💰; −6 de estabilidad.", eff: { gov: "constitucional", mods: { sPct: 0.1, gPct: 0.1 }, stab: -6, tag: "liberal" } },
-      { label: "Restaurar el absolutismo", desc: "+8 de estabilidad; −10 % 🔬.", eff: { gov: "absoluta", mods: { sPct: -0.1 }, stab: 8, tag: "absolutista" } },
-    ] },
-  { id: "industria", from: 1830, to: 1890, title: "La revolución industrial",
-    text: "¿En qué apuestas para industrializar el país?",
-    choices: [
-      { label: "Carbón y altos hornos", desc: "+20 % ⚙️ permanente; −3 de estabilidad (humos y huelgas).", eff: { mods: { pPct: 0.2 }, stab: -3, tag: "industrial" } },
-      { label: "Textil y comercio", desc: "+20 % 💰 permanente.", eff: { mods: { gPct: 0.2 }, tag: "comercial" } },
-      { label: "Modernizar el campo", desc: "+2 🌾 por ciudad.", eff: { mods: { cityF: 2 }, tag: "agraria" } },
-    ] },
-  { id: "ancho", from: 1845, to: 1870, title: "El ancho de vía",
-    text: "Los ingenieros discuten el ancho de las nuevas vías del tren.",
-    choices: [
-      { label: "Ancho propio, más ancho", desc: "+10 % de fuerza defensiva (las invasiones lo tienen más difícil).", eff: { mods: { defPct: 0.1 }, tag: "soberanista" } },
-      { label: "Ancho europeo", desc: "+10 % 💰 permanente.", eff: { mods: { gPct: 0.1 }, tag: "europeista" } },
-    ] },
-  { id: "regimen", from: 1868, to: 1935, title: "¿Monarquía o república?",
-    text: "Una crisis política sacude el país. La calle pide cambios.",
-    choices: [
-      { label: "República", desc: "Pasas a república federal o democracia (la que conozcas); −5 de estabilidad.", eff: { gov: ["democracia", "federal", "republica"], stab: -5, tag: "liberal" } },
-      { label: "Monarquía parlamentaria", desc: "+4 de estabilidad.", eff: { gov: "constitucional", stab: 4 } },
-      { label: "Mano dura", desc: "Régimen autoritario (si lo conoces): +15 % ⚙️; −8 de estabilidad a la larga.", eff: { gov: ["autoritario", "absoluta"], stab: -8, tag: "absolutista" } },
-    ] },
-  { id: "crac", from: 1929, to: 1935, title: "El crac de la bolsa", crisis: true,
-    text: "Una crisis financiera mundial hunde el comercio y deja a millones sin trabajo.",
-    choices: [
-      { label: "Obras públicas", desc: "−200 💰; +4 de estabilidad.", eff: { gold: -200, stab: 4 } },
-      { label: "Austeridad", desc: "−20 % 💰 durante 10 turnos; −8 de estabilidad.", eff: { temp: { mods: { gPct: -0.2 }, turns: 10 }, stab: -8 } },
-    ] },
-  { id: "turismo", from: 1955, to: 1975, coastal: true, title: "Sol y playa",
-    text: "Millones de turistas europeos descubren tus costas.",
-    choices: [
-      { label: "Abrir la costa al turismo", desc: "+4 💰 por ciudad costera.", eff: { mods: { coastG: 4 }, tag: "turistica" } },
-      { label: "Proteger el litoral", desc: "+6 de estabilidad y +1 🎭 por ciudad.", eff: { stab: 6, mods: { cityC: 1 }, tag: "verde" } },
-    ] },
-  { id: "europa", from: 1975, to: 2000, title: "Europa llama a la puerta",
-    text: "La comunidad de naciones europeas te invita a unirte: mercado común y fondos, a cambio de soberanía.",
-    choices: [
-      { label: "Entrar en la Unión", desc: "+15 % 💰 y +10 % 🔬 permanentes; −3 de estabilidad.", eff: { mods: { gPct: 0.15, sPct: 0.1 }, stab: -3, tag: "europeista" } },
-      { label: "Seguir por libre", desc: "+8 de estabilidad y +5 % ⚙️.", eff: { mods: { pPct: 0.05 }, stab: 8, tag: "soberanista" } },
-    ] },
-  { id: "energia", from: 2012, to: 2030, title: "La transición energética",
-    text: "El clima cambia y el petróleo se acaba. ¿Con qué moverás tu país?",
-    choices: [
-      { label: "Sol y viento", desc: "+10 % ⚙️ y +4 de estabilidad; resistirás mejor la sequía.", eff: { mods: { pPct: 0.1, drought: -0.5 }, stab: 4, tag: "verde" } },
-      { label: "Energía nuclear", desc: "+15 % ⚙️ permanente.", eff: { mods: { pPct: 0.15 }, tag: "nuclear" } },
-      { label: "Gas y petróleo baratos", desc: "+200 💰 ahora; la sequía te golpeará más.", eff: { gold: 200, mods: { drought: 0.5 } } },
-    ] },
-  { id: "sequia", from: 2032, to: 2042, title: "La gran sequía", crisis: true,
-    text: "Años sin lluvia vacían los embalses. El campo y las ciudades sufren.",
-    choices: [
-      { label: "Desaladoras y ahorro", desc: "−250 💰; −1 🌾 por ciudad durante 10 turnos.", eff: { gold: -250, temp: { mods: { cityF: -1 }, turns: 10 }, droughtHit: 0.5 } },
-      { label: "Aguantar", desc: "−3 🌾 por ciudad durante 10 turnos y −6 de estabilidad.", eff: { temp: { mods: { cityF: -3 }, turns: 10 }, stab: -6, droughtHit: 1 } },
-    ] },
-  { id: "ia_ley", from: 2035, to: 2048, title: "Máquinas que piensan",
-    text: "La inteligencia artificial transforma el trabajo. ¿Regular o acelerar?",
-    choices: [
-      { label: "Acelerar", desc: "+20 % 🔬; −5 de estabilidad.", eff: { mods: { sPct: 0.2 }, stab: -5, tag: "tecnologica" } },
-      { label: "Regular y proteger el empleo", desc: "+8 de estabilidad y +5 % 🔬.", eff: { mods: { sPct: 0.05 }, stab: 8, tag: "humanista" } },
-    ] },
-];
+// --- decisiones (eventos narrativos), fe e identidad: en events.js ---------------------------------------
+export { EVENTS, TAGS, FAITHS } from "./events.js";
 
 // Qué desbloquea cada tecnología (para las fichas del árbol).
 export function unlocksOf(techId) {

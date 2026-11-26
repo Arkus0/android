@@ -3,7 +3,7 @@
 // clics y las teclas, y lleva el ciclo de turnos (tú → los demás pueblos → final de ronda).
 import { UNITS, TECHS, RESOURCES, GOVS } from "./rules.js";
 import * as S from "./sim.js";
-import { runAI } from "./ai.js";
+import { runAI, suggestBuild, suggestResearch } from "./ai.js";
 import { createRenderer } from "./render.js";
 import * as UI from "./ui.js";
 
@@ -46,8 +46,9 @@ export function install(app) {
     if (game.selUnit && !G.units.includes(game.selUnit)) game.selUnit = null;
     if (game.selCity && !G.cities.includes(game.selCity)) game.selCity = null;
     refreshSelection();
-    if (full) { UI.renderHud(game); UI.renderPanel(game); UI.renderEndTurn(game); }
+    if (full) { UI.renderHud(game); UI.renderPanel(game); UI.renderActionBar(game); }
     app.requestDraw();
+    hints();
   };
   function refreshSelection() {
     const { G, M } = game;
@@ -62,16 +63,67 @@ export function install(app) {
   game.select = (thing) => {
     game.selUnit = thing && thing.type ? thing : null;
     game.selCity = thing && thing.pop != null ? thing : null;
+    game.target = null;
     refreshSelection();
+    setPeek(!!game.selUnit);
     UI.renderPanel(game);
+    UI.renderActionBar(game);
     app.requestDraw();
+    hints();
   };
+  function setPeek(on) {
+    game.peek = on;
+    game.dock?.classList.toggle("peek", !!on && app.isMobile());
+  }
+  // sugerencias (lo que haría la IA), con caché por turno
+  const sugCache = new Map();
+  game.suggestBuild = (c) => {
+    const k = `${game.G.turn}:${c.id}:${c.pop}:${c.buildings.length}:${game.G.players[0].techs.length}`;
+    if (!sugCache.has(k)) { if (sugCache.size > 200) sugCache.clear(); sugCache.set(k, suggestBuild(game.G, game.M, c)); }
+    return sugCache.get(k);
+  };
+  game.suggestResearch = () => {
+    const P = game.G.players[0];
+    const k = `r:${game.G.turn}:${P.techs.length}`;
+    if (!sugCache.has(k)) sugCache.set(k, suggestResearch(game.G, P));
+    return sugCache.get(k);
+  };
+  // consejos según lo que está pasando (cada uno sale una sola vez)
+  function hints() {
+    const { G } = game;
+    if (!G || game.busy || game.modal || G.over) return;
+    const u = game.selUnit;
+    const P = G.players[0];
+    if (u && u.owner === 0) {
+      if (u.type === "colono") return UI.tip(game, "start");
+      if (UNITS[u.type].worker) return UI.tip(game, "worker");
+      if (UNITS[u.type].trade) return UI.tip(game, "trade");
+      if (S.isMilitary(u)) { if (game.targets?.length) return UI.tip(game, "enemy"); return UI.tip(game, "move"); }
+    }
+    const pa = game.pendingAll();
+    if (pa.cities.length) return UI.tip(game, "city");
+    if (pa.research) return UI.tip(game, "research");
+    if (G.units.some((x) => x.owner !== 0 && game.vis?.[x.cell] && S.atWar(G, 0, x.owner))) return UI.tip(game, "enemy");
+    if (!pa.units.length && G.turn >= 2) return UI.tip(game, "endturn");
+  }
   game.focusCell = (cell, scale) => {
     const grid = app.w.grid;
     const s = Math.max(app.cam.scale, scale ?? 0.9);
-    app.flyTo(grid.cx(cell), grid.cy(cell), s, 450);
+    let y = grid.cy(cell);
+    if (app.isMobile()) {
+      // en el móvil, centrar en el hueco que dejan la barra de arriba y el panel de abajo
+      const top = document.getElementById("game-act")?.getBoundingClientRect().bottom ?? 40;
+      // (la altura final del panel, no la de su animación: 22 % plegado, 50 % desplegado)
+      const bottom = game.dock && !game.dock.hidden ? innerHeight * (game.peek ? 0.78 : 0.5) : innerHeight;
+      const want = (top + bottom) / 2;
+      y += (innerHeight / 2 - want) / s;
+      app.cam.flyTo ? app.cam.flyTo(grid.cx(cell), y, s, 450) : app.flyTo(grid.cx(cell), y, s, 450);
+      app.requestDraw();
+      return;
+    }
+    app.flyTo(grid.cx(cell), y, s, 450);
   };
-  const needsOrders = (u) => u.owner === 0 && u.mp > 0 && !u.fortified && !u.sleep && !u.skip && !(u.goto && u.goto.length);
+  const needsOrders = (u) => u.owner === 0 && u.mp > 0 && !u.fortified && !u.sleep && !u.skip && !u.task && !(u.goto && u.goto.length);
   game.pending = () => {
     const { G } = game;
     if (!G || G.over) return null;
@@ -82,6 +134,16 @@ export function install(app) {
     const u = G.units.find(needsOrders);
     if (u) return { kind: "unit", unit: u, label: "Hay unidades esperando órdenes" };
     return null;
+  };
+  game.pendingAll = () => {
+    const { G } = game;
+    const out = { research: false, cities: [], units: [] };
+    if (!G || G.over) return out;
+    const P = G.players[0];
+    out.research = !P.research && S.availableTechs(P).length > 0 && S.playerCities(G, 0).length > 0;
+    out.cities = S.playerCities(G, 0).filter((x) => !x.build);
+    out.units = G.units.filter(needsOrders);
+    return out;
   };
   game.nextUnit = () => {
     const { G } = game;
@@ -108,7 +170,7 @@ export function install(app) {
     if (P.techs.includes(id)) return;
     if (S.availableTechs(P).includes(id)) { P.research = id; P.researchGoal = null; }
     else { P.researchGoal = id; P.research = nextStep(P, id); }
-    UI.renderHud(game); UI.renderPanel(game); UI.renderEndTurn(game);
+    UI.renderHud(game); UI.renderPanel(game); UI.renderActionBar(game);
   };
   function nextStep(P, goal) {
     // la tecnología disponible más barata en el camino hacia el objetivo
@@ -197,6 +259,11 @@ export function install(app) {
       case "history": case "menu-history": return UI.showHistory(game);
       case "economy": return game.select(null);
       case "pending": return game.endTurnButton(false);
+      case "endturn": return game.endTurn();
+      case "confirm": return game.confirmTarget();
+      case "cancel": game.target = null; UI.renderActionBar(game); app.requestDraw(); return;
+      case "summary": return game.select(null);
+      case "peek": setPeek(!game.peek); return;
       case "next": return game.nextUnit();
       case "deselect": return game.select(null);
       case "goto": return game.focusCell(+data.cell);
@@ -204,7 +271,7 @@ export function install(app) {
         if (u && u.owner === 0 && S.canFound(G, M, u).ok && u.mp > 0) {
           const c = S.foundCity(G, M, u);
           game.changed();
-          if (c) { game.select(c); app.ui.toast?.(`🏛️ Fundada ${c.name}. Elige qué construir.`); }
+          if (c) { game.select(c); renderer.ping(c.cell, "#ffd65a"); app.ui.toast?.(`🏛️ Fundada ${c.name}. Elige qué construir.`); }
         }
         return;
       case "fortify": if (u && u.owner === 0 && S.isMilitary(u)) { u.fortified = true; u.goto = null; game.changed(); autoAdvance({ mp: 0 }); } return;
@@ -220,6 +287,12 @@ export function install(app) {
             game.nextUnit();
           });
         }
+        return;
+      case "work":
+        if (u && u.owner === 0 && S.startWork(G, M, u, data.id)) { game.changed(); autoAdvance(u); }
+        return;
+      case "trade":
+        if (u && u.owner === 0 && S.openRoute(G, M, u, +data.city)) { app.ui.toast?.("🧳 Ruta comercial abierta."); game.changed(); game.nextUnit(); }
         return;
       case "build": {
         const c = game.selCity;
@@ -242,6 +315,7 @@ export function install(app) {
         UI.ask(game, { title: "¿Nueva partida?", text: "Se perderá la partida actual.", yes: "Empezar otra", no: "Cancelar", danger: true }).then((ok) => { if (ok) { S.clearSave(); game.G = null; setup(); } });
         return;
       case "menu-help": return UI.showHelp(game);
+      case "menu-tips": UI.resetTips(); app.ui.toast?.("Los consejos volverán a salir."); hints(); return;
       case "menu-exit": return app.setMode(null);
     }
   };
@@ -253,10 +327,13 @@ export function install(app) {
     UI.closeModal(game);
     game.busy = true;
     game.select(null);
-    UI.renderEndTurn(game);
+    UI.renderActionBar(game);
     await nextFrame();
     const myUnits = new Map(G.units.filter((u) => u.owner === 0).map((u) => [u, u.hp]));
     const myCities = new Set(S.playerCities(G, 0).map((c) => c.id));
+    const pops = new Map(S.playerCities(G, 0).map((c) => [c.id, c.pop]));
+    const myRoutes = S.routesOf(G, 0).length;
+    const lastCell = new Map([...myUnits.keys()].map((u) => [u, u.cell]));
     const logFrom = G.log.length;
     try {
       for (const st of S.cityStrikes(G, M, 0)) renderer.float(st.unit.cell, `−${st.dmg}`, "#ff7a5c");
@@ -285,22 +362,42 @@ export function install(app) {
     game.busy = false;
     game.changed();
     S.saveGame(G);
-    // avisos de la ronda
-    const news = G.log.slice(logFrom).filter((e) => e.player === 0 || e.all || e.kind === "meet");
-    const msgs = news.map((e) => e.msg);
-    if (lostUnits.length) msgs.unshift(`Has perdido ${lostUnits.length} unidad${lostUnits.length > 1 ? "es" : ""}.`);
-    for (const id of lostCities) msgs.unshift(`⚠️ Has perdido ${S.cityById(G, id)?.name || "una ciudad"}.`);
-    msgs.slice(0, 4).forEach((m, k) => setTimeout(() => app.ui.toast?.(m), k * 1300));
+    // novedades de la ronda (en el panel, con «Ver»), y avisos en el mapa
+    const ICON = { war: "⚔️", peace: "🕊️", tech: "🔬", city: "🏙️", unit: "🪖", build: "🏗️", wonder: "🏛️", meet: "🤝", gov: "👑", trade: "🧳", bad: "⚠️", grow: "🌾", win: "🏆" };
+    const strip = (m) => String(m).replace(/^(\p{Extended_Pictographic}|\uFE0F|\u200D|\s)+/u, "");
+    const report = [];
+    for (const id of lostCities) report.push({ icon: "🏚️", text: `Has perdido ${S.cityById(G, id)?.name || "una ciudad"}.`, tone: "bad", cell: S.cityById(G, id)?.cell });
+    if (lostUnits.length) report.push({ icon: "💀", text: `Has perdido: ${lostUnits.map((u) => UNITS[u.type].name).join(", ")}.`, tone: "bad", cell: lastCell.get(lostUnits[0]) });
+    for (const [u, hp] of myUnits) if (G.units.includes(u) && u.owner === 0 && u.hp < hp) report.push({ icon: "🩸", text: `Atacan a tus ${UNITS[u.type].name} (−${Math.round(hp - u.hp)} de vida).`, tone: "bad", cell: u.cell });
+    for (const e of G.log.slice(logFrom)) {
+      if (!(e.player === 0 || e.all || e.kind === "meet")) continue;
+      const tone = e.kind === "war" || e.kind === "bad" ? "bad" : e.player === 0 && ["tech", "city", "unit", "build", "wonder", "trade", "gov"].includes(e.kind) ? "good" : "";
+      report.push({ icon: ICON[e.kind] || "•", text: strip(e.msg), tone, cell: e.cell ?? undefined });
+    }
+    for (const c of S.playerCities(G, 0)) if (pops.has(c.id) && c.pop > pops.get(c.id)) report.push({ icon: "🌾", text: `${c.name} crece a ${c.pop}.`, tone: "good", cell: c.cell });
+    if (S.routesOf(G, 0).length < myRoutes) report.push({ icon: "🧳", text: "Se ha cortado una ruta comercial (guerra o ciudad perdida).", tone: "bad" });
+    game.rumorSeen ??= new Set();
+    for (const r of S.rumors(G, M)) if (!game.rumorSeen.has(r.inv.id)) {
+      game.rumorSeen.add(r.inv.id);
+      report.push({ icon: "🚩", text: `Rumores: ${r.inv.name} prepara una invasión por ${r.places.join(" o ") || "la frontera"} (en ~${r.turns} turno${r.turns === 1 ? "" : "s"}).`, tone: "bad", cell: r.cell });
+    }
+    report.sort((a, b) => (b.tone === "bad") - (a.tone === "bad"));
+    game.report = report.slice(0, 16);
+    for (const x of game.report) if (x.cell != null) renderer.ping(x.cell, x.tone === "bad" ? "#ff5a45" : x.tone === "good" ? "#7fe07f" : "#ffd65a");
+    game.select(null);
+    setPeek(false);
     if (G.over) { UI.showGameOver(game); return; }
     // invasiones, revueltas y decisiones de la ronda
     const alerts = (G.alerts || []).splice(0);
     for (const a of alerts) { await UI.alertBox(game, a); game.changed(); }
     for (let k = 0; k < 2; k++) {
-      const ev = S.nextEvent(G, M, 0);
-      if (!ev) break;
-      const r = await UI.decide(game, ev);
-      S.resolveEvent(G, M, 0, ev.id, r.choice, { name: r.name });
+      const o = S.nextEvent(G, M, 0);
+      if (!o) break;
+      const r = await UI.decide(game, o);
+      S.resolveEvent(G, M, 0, o.ev.id, r.choice, { name: r.name, ctx: o.ctx, keep: r.keep });
+      if (!o.ev.name) game.report.unshift({ icon: o.ev.crisis ? "⚠️" : "📜", text: `${o.ev.title}: ${o.ev.choices[r.choice]?.label || ""}.`, tone: "" });
       game.changed();
+      UI.tip(game, "event");
     }
     S.saveGame(G);
     if (G.peaceOffer) {
@@ -311,7 +408,8 @@ export function install(app) {
         if (ok) { S.makePeace(G, M, 0, q); game.changed(); }
       }
     }
-    if (!game.modal) game.nextUnit() || null;
+    game.changed();
+    if (game.report.length) UI.tip(game, "report");
   };
 
   // --- entrada ---------------------------------------------------------------------------------------------------
@@ -338,29 +436,73 @@ export function install(app) {
     }
     return UI.tooltip(game, cell);
   }
+  /** Qué pasaría si la unidad elegida va a `cell`: {cell, attack, path, turns, pv} o null. */
+  function planFor(u, cell) {
+    const { G, M } = game;
+    if (S.canAttack(G, M, u, cell)) return { cell, attack: true, path: [], turns: [], pv: game.attackPreview(cell), now: true };
+    if (M.kind[cell] === S.K.VOID) return null;
+    const enemy = game.vis[cell] ? S.targetAt(G, 0, cell) : null;
+    const p = S.findPath(G, M, u, cell, { attack: !!enemy, maxTurns: 25 });
+    if (!p || !p.path.length) return null;
+    return { cell, attack: !!enemy, path: p.path, turns: p.turns, pv: null };
+  }
+  async function execute(u, plan) {
+    const { G, M } = game;
+    game.target = null;
+    if (plan.now) return doAttack(u, plan.cell);
+    const path = plan.attack ? plan.path.slice(0, -1) : plan.path;
+    if (path.length) doMove(u, path);
+    if (plan.attack && G.units.includes(u) && u.mp > 0 && S.canAttack(G, M, u, plan.cell)) await doAttack(u, plan.cell);
+  }
+  game.confirmTarget = () => {
+    const u = game.selUnit, t = game.target;
+    if (!u || !t) return;
+    execute(u, t);
+  };
   function click(ev) {
     const { G, M } = game;
     if (!G || game.busy) return true;
+    game.touch = !!ev.pointerType && ev.pointerType !== "mouse";
+    const cell = ev.cell;
+    const u = game.selUnit;
+    // 1) segundo toque sobre el destino elegido: confirmar
+    if (game.target && u && cell === game.target.cell) { game.confirmTarget(); return true; }
+    // 2) fichas propias bajo el dedo (aunque el zoom sea pequeño)
+    const tokens = renderer.unitsAt(ev.x, ev.y, game.touch ? 12 : 4).filter((x) => x.owner === 0);
+    if (tokens.length && !(u && game.target)) {
+      const i = tokens.indexOf(u);
+      game.select(tokens[(i + 1) % tokens.length]);
+      return true;
+    }
     const b = renderer.bannerAt(ev.x, ev.y);
     if (b) { game.select(b); return true; }
-    const cell = ev.cell;
     if (cell < 0) { game.select(null); return true; }
-    const u = game.selUnit;
-    if (u && u.owner === 0 && cell !== u.cell && !G.over) {
-      if (S.canAttack(G, M, u, cell)) { doAttack(u, cell); return true; }
-      if (M.kind[cell] !== S.K.VOID) {
-        const enemy = game.vis[cell] ? S.targetAt(G, 0, cell) : null;
-        const p = S.findPath(G, M, u, cell, { attack: !!enemy, maxTurns: 25 });
-        if (p && p.path.length) {
-          const path = enemy ? p.path.slice(0, -1) : p.path;
-          if (path.length) doMove(u, path);
-          if (enemy && G.units.includes(u) && u.mp > 0 && S.canAttack(G, M, u, cell)) doAttack(u, cell);
+    // 3) con una unidad propia elegida: mover o atacar
+    if (u && u.owner === 0 && cell !== u.cell && !G.over && u.mp > 0) {
+      const plan = planFor(u, cell);
+      if (plan) {
+        if (plan.attack && !plan.pv) plan.pv = null;
+        if (game.touch) {
+          // primer toque: enseñar qué pasará (camino, turnos o resultado del combate)
+          game.target = plan;
+          game.pathPreview = null;
+          setPeek(true);
+          UI.renderActionBar(game);
+          app.requestDraw();
           return true;
         }
+        const od = plan.pv ? S.odds(plan.pv) : null;
+        if (od && od.label === "Tu unidad morirá") {
+          UI.ask(game, { title: "¿Atacar de todos modos?", text: `Lo más probable es que <b>tu unidad muera</b> (daño recibido ≈ ${plan.pv.toAtt}, le quedan ${Math.round(u.hp)} de vida).`, yes: "Atacar", no: "Mejor no", danger: true })
+            .then((ok) => { if (ok) execute(u, plan); });
+          return true;
+        }
+        execute(u, plan);
+        return true;
       }
     }
-    // elegir lo que haya en la casilla
-    const mine = G.units.filter((x) => x.cell === cell && x.owner === 0).sort((a, b) => Number(S.isMilitary(b)) - Number(S.isMilitary(a)));
+    // 4) elegir lo que haya en la casilla
+    const mine = G.units.filter((x) => x.cell === cell && x.owner === 0).sort((a, b2) => Number(S.isMilitary(b2)) - Number(S.isMilitary(a)));
     const city = S.cityAt(G, cell);
     if (mine.length) {
       const i = mine.indexOf(game.selUnit);
@@ -389,7 +531,7 @@ export function install(app) {
     }
     const take = () => { e.preventDefault(); e.stopPropagation(); };
     switch (k) {
-      case "Enter": take(); if (!game.busy) game.endTurnButton(e.shiftKey); break;
+      case "Enter": take(); if (game.busy) break; if (game.target) game.confirmTarget(); else game.endTurnButton(e.shiftKey); break;
       case " ": take(); game.action("skip"); break;
       case "f": take(); game.action("fortify"); break;
       case "b": take(); game.action("found"); break;
@@ -419,11 +561,11 @@ export function install(app) {
     game.focusCell(at, 1.05);
     setTimeout(() => {
       game.nextUnit();
-      if (fresh) app.ui.toast?.(`Tus colonos esperan en ${M.names[at] || "su tierra"}. Pulsa B para fundar la capital.`);
+      if (fresh) { game.report = [{ icon: "🛖", text: `Tus colonos esperan en ${M.names[at] || "su tierra"}: funda tu capital (B).`, tone: "good", cell: at }]; game.changed(); }
     }, 500);
   }
   function setup() {
-    UI.renderHud(game); UI.renderEndTurn(game); UI.renderPanel(game);
+    UI.renderHud(game); UI.renderActionBar(game); UI.renderPanel(game);
     UI.showSetup(game, {
       hasSave: S.hasSave(),
       onStart: (o) => startNew(o),
@@ -474,11 +616,14 @@ export function install(app) {
       game.dock = null;
       document.getElementById("game-bar")?.remove();
       document.getElementById("game-end")?.remove();
+      document.getElementById("game-act")?.remove();
+      document.getElementById("game-tip")?.remove();
       if (saved) app.setShowResources(saved.showResources);
       app.invalidate();
     },
     onEscape() {
       if (UI.closeModal(game)) return true;
+      if (game.target) { game.target = null; UI.renderActionBar(game); app.requestDraw(); return true; }
       if (game.selUnit || game.selCity) { game.select(null); return true; }
       return true; // Esc no saca de la partida (para eso, el menú ☰ o el botón Jugar)
     },
