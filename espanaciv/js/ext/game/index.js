@@ -1,7 +1,7 @@
 // «Hispania»: el modo de juego de España Civ. Un 4X por turnos original sobre el mapa real de la Península.
 // Este módulo es el controlador: registra el modo "game", el botón «Jugar», los overlays de dibujo, el tooltip, los
 // clics y las teclas, y lleva el ciclo de turnos (tú → los demás pueblos → final de ronda).
-import { UNITS, TECHS, RESOURCES } from "./rules.js";
+import { UNITS, TECHS, RESOURCES, GOVS } from "./rules.js";
 import * as S from "./sim.js";
 import { runAI } from "./ai.js";
 import { createRenderer } from "./render.js";
@@ -164,8 +164,16 @@ export function install(app) {
     S.declareWar(G, 0, q);
     game.changed();
   };
+  game.changeGov = async (id) => {
+    const { G } = game;
+    const ok = await UI.ask(game, { title: "¿Cambiar de régimen?", text: `Pasaréis a una <b>${UI.esc(GOVS[id].name)}</b>. La transición cuesta 10 de estabilidad.`, yes: "Cambiar", no: "Cancelar" });
+    if (!ok) return;
+    S.setGov(G, G.players[0], id);
+    game.changed();
+  };
   game.proposePeace = (q) => {
     const { G, M } = game;
+    if (G.players[q].invader) { app.ui.toast?.("Los invasores no negocian."); return; }
     const since = G.players[0].warSince?.[q] ?? 0;
     const theirs = S.military(G, q), mine = S.military(G, 0);
     UI.closeModal(game);
@@ -185,6 +193,8 @@ export function install(app) {
       case "diplo": return UI.showDiplo(game);
       case "log": return UI.showLog(game);
       case "menu": return UI.showMenu(game);
+      case "gov": return UI.showGov(game);
+      case "history": case "menu-history": return UI.showHistory(game);
       case "economy": return game.select(null);
       case "pending": return game.endTurnButton(false);
       case "next": return game.nextUnit();
@@ -282,6 +292,17 @@ export function install(app) {
     for (const id of lostCities) msgs.unshift(`⚠️ Has perdido ${S.cityById(G, id)?.name || "una ciudad"}.`);
     msgs.slice(0, 4).forEach((m, k) => setTimeout(() => app.ui.toast?.(m), k * 1300));
     if (G.over) { UI.showGameOver(game); return; }
+    // invasiones, revueltas y decisiones de la ronda
+    const alerts = (G.alerts || []).splice(0);
+    for (const a of alerts) { await UI.alertBox(game, a); game.changed(); }
+    for (let k = 0; k < 2; k++) {
+      const ev = S.nextEvent(G, M, 0);
+      if (!ev) break;
+      const r = await UI.decide(game, ev);
+      S.resolveEvent(G, M, 0, ev.id, r.choice, { name: r.name });
+      game.changed();
+    }
+    S.saveGame(G);
     if (G.peaceOffer) {
       const q = G.peaceOffer.from;
       G.peaceOffer = null;
@@ -308,7 +329,7 @@ export function install(app) {
       game.hoverCell = cell;
       const u = game.selUnit;
       game.pathPreview = null;
-      if (u && u.owner === 0 && cell >= 0 && cell !== u.cell && game.G.explored[cell] && !game.attackPreview(cell)) {
+      if (u && u.owner === 0 && cell >= 0 && cell !== u.cell && game.M.kind[cell] !== S.K.VOID && !game.attackPreview(cell)) {
         const enemy = S.targetAt(game.G, 0, cell);
         const p = S.findPath(game.G, game.M, u, cell, { attack: !!enemy && game.vis[cell], maxTurns: 25 });
         if (p && p.path.length) game.pathPreview = { ...p, target: cell, attack: !!enemy };
@@ -327,7 +348,7 @@ export function install(app) {
     const u = game.selUnit;
     if (u && u.owner === 0 && cell !== u.cell && !G.over) {
       if (S.canAttack(G, M, u, cell)) { doAttack(u, cell); return true; }
-      if (G.explored[cell]) {
+      if (M.kind[cell] !== S.K.VOID) {
         const enemy = game.vis[cell] ? S.targetAt(G, 0, cell) : null;
         const p = S.findPath(G, M, u, cell, { attack: !!enemy, maxTurns: 25 });
         if (p && p.path.length) {
@@ -377,6 +398,7 @@ export function install(app) {
       case "h": take(); if (game.selUnit) game.focusCell(game.selUnit.cell); else if (game.selCity) game.focusCell(game.selCity.cell); break;
       case "l": case "r": take(); break; // sin lentes ni recursos reales durante la partida
       case "d": if (e.shiftKey) { take(); UI.showDiplo(game); } break;
+      case "g": take(); UI.showGov(game); break;
       default:
     }
   }
@@ -472,5 +494,7 @@ export function install(app) {
     btn.setAttribute("aria-pressed", "false");
   }
   app.on("mode", ({ name }) => document.getElementById("btn-game")?.setAttribute("aria-pressed", String(name === MODE)));
-  window.__hispania = game; // para depurar desde la consola
+  game.S = S;
+  game.runAI = runAI;
+  window.__hispania = game; // para depurar desde la consola (y las pruebas)
 }

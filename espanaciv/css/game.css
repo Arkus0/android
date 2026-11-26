@@ -121,7 +121,7 @@ kbd { font: 600 10px var(--sans); padding: 1px 4px; border-radius: 3px; border: 
 .gm-menu { display: flex; flex-direction: column; gap: 6px; }
 
 /* árbol tecnológico */
-.gt-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gt-cols { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(170px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 6px; }
 .gt-col h4 { margin: 4px 0 8px; font-family: var(--serif); color: var(--gold); letter-spacing: .1em; text-transform: uppercase; font-size: 12px; }
 .gt-tech { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; margin-bottom: 6px; padding: 7px 9px; border-radius: 6px; cursor: pointer;
   background: rgba(0,0,0,.25); border: 1px solid rgba(201,164,92,.25); color: var(--ink); }
@@ -147,9 +147,53 @@ kbd { font: 600 10px var(--sans); padding: 1px 4px; border-radius: 3px; border: 
   .game-bar .gb-people, .game-bar .gb-y:not(.gb-sci):not(.gb-war), .game-bar small { display: none; }
   .game-bar .gb-sci { max-width: 120px; }
   .game-end { top: calc(var(--topbar-h) + 8px); bottom: auto; right: 8px; }
+  body.game-on #toast { top: calc(var(--topbar-h) + 64px); }
+  .game-bar .gb-turn { font-size: 11px; }
   .game-end .ge-main { min-width: 0; padding: 8px 12px; font-size: 14px; }
   .game-end .ge-force { display: none; }
-  .gt-cols { grid-template-columns: 1fr; }
+  .gt-cols { grid-template-columns: repeat(var(--n, 3), 160px); }
   .gd-row { grid-template-columns: 1fr; gap: 4px; }
   .game-dock { padding-bottom: 20px; }
+}
+
+/* --- 2000 a. C. – 2050: gobierno, estabilidad, decisiones e historia ---------------------------------------------- */
+.game-bar button.gb-people { background: none; border: none; cursor: pointer; padding: 0; font-size: inherit; }
+.game-bar .gb-stab.good b { color: #8fdc8f; }
+.game-bar .gb-stab.warn b { color: #ffc65c; }
+.game-bar .gb-stab.bad b { color: #ff7a5c; }
+.game-bar .gb-gov small { max-width: 110px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
+.gm-year { margin: 0 0 4px; font: 600 12px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.gm-choices { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.gm-choice { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px 12px; cursor: pointer; border-radius: 6px;
+  background: rgba(0,0,0,.28); border: 1px solid rgba(201,164,92,.4); color: var(--ink); }
+.gm-choice b { font: bold 15px var(--serif); color: var(--gold-bright); }
+.gm-choice small { color: var(--ink-dim); font-size: 12.5px; }
+.gm-choice:hover { border-color: var(--gold-bright); background: rgba(90,74,36,.45); }
+.gm-names { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.gm-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-dim); }
+.gm-field input { font: 15px var(--serif); padding: 7px 9px; border-radius: 4px; border: 1px solid var(--gold); background: #101a25; color: var(--ink); }
+.gm-decision .gm-card { border-color: var(--gold-bright); }
+.gm-invasion .gm-card { border-color: #e0604a; box-shadow: 0 0 0 1px #e0604a, 0 10px 30px rgba(0,0,0,.6); }
+.gv-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.gv-gov { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 9px 11px; border-radius: 6px; cursor: pointer;
+  background: rgba(0,0,0,.25); border: 1px solid rgba(201,164,92,.3); color: var(--ink); }
+.gv-gov b { font: bold 14px var(--serif); color: var(--gold-bright); }
+.gv-gov small { font-size: 12px; color: var(--ink-dim); }
+.gv-gov:hover:not(:disabled) { border-color: var(--gold-bright); }
+.gv-gov:disabled { opacity: .5; cursor: default; }
+.gv-gov.on { opacity: 1; border-color: #7ec8ff; background: rgba(40,90,140,.4); }
+.gv-cur { color: #7ec8ff !important; font-weight: 600; }
+.gh-head { display: flex; align-items: center; gap: 12px; margin: 6px 0 10px; }
+.gh-head h3 { margin: 0; font: bold 22px var(--serif); color: var(--gold-bright); }
+.gh-flag { display: inline-flex; flex-direction: column; width: 46px; height: 32px; border: 1px solid #000; box-shadow: 0 0 0 2px rgba(201,164,92,.6); flex: none; }
+.gh-flag i { flex: 1; background: var(--pc); }
+.gh-flag i:nth-child(2) { background: var(--gold); }
+.gh-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.gh-tags span { padding: 2px 9px; border-radius: 12px; font-size: 12px; background: rgba(201,164,92,.18); border: 1px solid rgba(201,164,92,.5); color: var(--gold-bright); }
+.gh-story p { margin: 6px 0; font: 15px/1.55 var(--serif); }
+.gh-tl { padding-left: 18px; max-height: 260px; overflow: auto; font-size: 13px; }
+.gh-tl li { margin: 3px 0; }
+.gh-tl small { color: var(--gold); margin-right: 6px; font-weight: 600; }
+@media (max-width: 700px) {
+  .game-bar .gb-gov, .game-bar .gb-stab small { display: none; }
 }

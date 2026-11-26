@@ -1,17 +1,17 @@
 // IA de los pueblos rivales de «Hispania»: sencilla pero completa. Investiga, elige qué construir, funda ciudades en
 // los mejores sitios que encuentra, guarnece sus ciudades, declara guerras cuando se ve fuerte y ataca con cabeza
 // (solo cuando el combate le sale a cuenta). Usa toda la información del mapa (no tiene niebla).
-import { UNITS, BUILDINGS, TECHS, DIFFICULTY } from "./rules.js";
+import { UNITS, BUILDINGS, TECHS, DIFFICULTY, GOVS } from "./rules.js";
 import {
   rng, K, dist, within, neighbours, has, atWar, cityAt, isMilitary, playerCities, playerUnits, tileOwnerPlayer,
   buildOptions, setBuild, canFound, foundCity, availableTechs, techCost, findPath, moveAlong, canAttack, preview, attack,
-  declareWar, makePeace, military, cityYield, housing, fullMp, enterCost,
+  declareWar, makePeace, military, cityYield, housing, fullMp, enterCost, aiEvents, availableGovs, setGov, GOV_COOLDOWN, buyCost, buy,
 } from "./sim.js";
 
 const FLAVOR = {
   celtiberos: { war: 1.4, tech: ["bronce", "hierro", "doma"] },
   vascones: { war: 1.1, tech: ["bronce", "albanileria"] },
-  punicos: { war: 0.8, tech: ["moneda", "cartografia", "navegacion"] },
+  argaricos: { war: 1.2, tech: ["bronce", "hierro", "albanileria"] },
   iberos: { war: 1.0, tech: ["escritura", "misticismo", "drama"] },
   tartesios: { war: 0.8, tech: ["moneda", "mineria", "banca"] },
   galaicos: { war: 0.9, tech: ["navegacion", "albanileria"] },
@@ -19,20 +19,45 @@ const FLAVOR = {
   vettones: { war: 1.0, tech: ["doma", "ganaderia", "hierro"] },
   carpetanos: { war: 0.9, tech: ["escritura", "filosofia", "matematicas"] },
 };
-const BUILD_ORDER = ["dolmen", "granero", "murallas", "biblioteca", "templo", "mercado", "forja", "puerto", "acueducto", "termas", "teatro", "molino", "universidad", "catedral", "lonja", "castillo", "imprenta"];
+const BUILD_ORDER = ["dolmen", "granero", "murallas", "biblioteca", "templo", "mercado", "forja", "puerto", "acueducto", "termas", "teatro", "molino", "universidad", "catedral", "lonja", "castillo", "imprenta",
+  "academia", "fabrica", "bolsa", "hospital", "estacion", "museo", "central", "laboratorio", "estadio", "aeropuerto", "datos", "solar"];
+// Gobiernos preferidos por la IA (de menos a más deseable); los belicosos prefieren imperio y mano dura.
+const GOV_PREF = ["jefatura", "monarquia", "republica", "feudal", "teocracia", "absoluta", "constitucional", "federal", "democracia", "tecnocracia"];
+const GOV_PREF_WAR = ["jefatura", "monarquia", "feudal", "imperio", "absoluta", "constitucional", "autoritario", "tecnocracia"];
 
 export function runAI(G, M, p) {
   const P = G.players[p];
   if (!P.alive || G.over) return;
   P.aiTargetCities ??= 6 + Math.floor(rng(G) * 5);
-  chooseResearch(G, P);
-  diplomacy(G, M, p);
+  const hasCities = playerCities(G, p).length > 0;
+  if (hasCities) chooseResearch(G, P);
+  if (!P.invader) {
+    diplomacy(G, M, p);
+    aiEvents(G, M, p);
+    chooseGov(G, P);
+  }
   for (const city of playerCities(G, p)) if (!city.build) chooseBuild(G, M, city);
+  spendGold(G, M, P);
   // primero los colonos (fundan donde estén si es buen sitio), luego los militares
   const us = playerUnits(G, p).sort((a, b) => (a.type === "colono" ? 0 : 1) - (b.type === "colono" ? 0 : 1));
   for (const u of us) {
     if (!G.units.includes(u) || G.over) continue;
     try { actUnit(G, M, u); } catch (err) { console.error("IA: unidad", u, err); }
+  }
+}
+
+// La IA compra producción cuando le sobra el oro (antes, unidades si está en guerra).
+function spendGold(G, M, P) {
+  const reserve = 80 + 30 * playerCities(G, P.idx).length;
+  if (P.gold < reserve * 2) return;
+  const atWarAny = G.players.some((Q) => Q.alive && atWar(G, P.idx, Q.idx));
+  const cs = playerCities(G, P.idx).filter((c) => c.build && c.build.kind !== "wonder" && c.build.kind !== "trade" && !c.bought);
+  cs.sort((a, b) => (atWarAny ? Number(b.build.kind === "unit") - Number(a.build.kind === "unit") : 0) || b.pop - a.pop);
+  for (const c of cs) {
+    const cost = buyCost(G, c);
+    if (cost == null || P.gold - cost < reserve) continue;
+    buy(G, M, c);
+    if (P.gold < reserve * 2) break;
   }
 }
 
@@ -49,6 +74,15 @@ function chooseResearch(G, P) {
   P.research = best;
 }
 
+function chooseGov(G, P) {
+  if (G.turn - (P.govTurn || 0) < GOV_COOLDOWN * 2) return;
+  const pref = (FLAVOR[P.people]?.war ?? 1) > 1.1 ? GOV_PREF_WAR : GOV_PREF;
+  const av = availableGovs(P);
+  let best = null;
+  for (const g of pref) if (av.includes(g)) best = g;
+  if (best && best !== P.gov && rng(G) < 0.5) setGov(G, P, best);
+}
+
 function closeness(G, M, a, b) {
   let best = Infinity;
   const ca = playerCities(G, a), cb = playerCities(G, b);
@@ -63,7 +97,7 @@ function diplomacy(G, M, p) {
   let wars = 0;
   for (const Q of G.players) if (Q.alive && atWar(G, p, Q.idx)) wars++;
   for (const Q of G.players) {
-    if (!Q.alive || Q.idx === p) continue;
+    if (!Q.alive || Q.idx === p || Q.invader) continue;
     const q = Q.idx;
     if (atWar(G, p, q)) {
       const since = P.warSince?.[q] ?? G.turn;
@@ -126,7 +160,8 @@ function chooseBuild(G, M, city) {
   }
   const y = cityYield(G, M, city);
   const wonders = opts.filter((o) => o.kind === "wonder");
-  if (wonders.length && y.p >= 4 && rng(G) < 0.45) return set("wonder", wonders[Math.floor(rng(G) * wonders.length)].id);
+  const building = cities.filter((c) => c.build?.kind === "wonder").length;
+  if (wonders.length && y.p >= 3 && building < 2 && rng(G) < 0.75) return set("wonder", wonders[Math.floor(rng(G) * wonders.length)].id);
   if (mil < cities.length * 1.2 + 1 && defender) return set("unit", defender);
   for (const b of BUILD_ORDER) {
     if (!can("building", b)) continue;

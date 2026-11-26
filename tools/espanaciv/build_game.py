@@ -19,10 +19,26 @@ STARTS = {
     "celtiberos": ("Garray", "SO"),
     "ilergetes": ("Lleida", "L"),
     "iberos": ("Llíria", "V"),
-    "punicos": ("Cartagena", "MU"),
+    "argaricos": ("Antas", "AL"),
     "tartesios": ("Sevilla", "SE"),
     "vettones": ("Salamanca", "SA"),
     "carpetanos": ("Toledo", "TO"),
+}
+
+# Puntos de entrada de las invasiones: (municipio, provincia), en orden de preferencia.
+ENTRIES = {
+    "pirineo_oeste": [("Orreaga/Roncesvalles", "NA"), ("Auritz/Burguete", "NA"), ("Luzaide/Valcarlos", "NA")],
+    "pirineo_centro": [("Canfranc", "HU"), ("Jaca", "HU")],
+    "pirineo_este": [("La Jonquera", "GI"), ("Figueres", "GI")],
+    "irun": [("Irun", "SS")],
+    "emporion": [("L'Escala", "GI"), ("Roses", "GI")],
+    "tarraco": [("Tarragona", "T")],
+    "estrecho": [("Tarifa", "CA"), ("Algeciras", "CA")],
+    "cadiz": [("Cádiz", "CA"), ("San Fernando", "CA")],
+    "cartagena": [("Cartagena", "MU")],
+    "malaga": [("Málaga", "MA")],
+    "coruna": [("A Coruña", "C")],
+    "sevilla": [("Sevilla", "SE")],
 }
 
 # Recursos con historia: (tipo, municipio, provincia). Minas, salinas, vegas y almadrabas conocidas desde la
@@ -76,7 +92,9 @@ WONDER_SITES = {
     "medulas": "Las Médulas", "segovia": "Acueducto de Segovia", "hercules": "Torre de Hércules", "merida": "Mérida",
     "tarraco": "Tarraco", "mezquita": "Mezquita de Córdoba", "alhambra": "Alhambra", "burgos": "Catedral de Burgos",
     "santiago": "Santiago de Compostela", "salamanca": "Salamanca", "toledo": "Toledo", "azahara": "Medina Azahara",
-    "escorial": "El Escorial", "sevilla": "Catedral y Alcázar de Sevilla",
+    "escorial": "El Escorial", "sevilla": "Catedral y Alcázar de Sevilla", "lonja": "Lonja de Valencia",
+    "alcala": "Alcalá de Henares", "ubeda": "Úbeda y Baeza", "aranjuez": "Aranjuez", "prado": "Paseo del Prado y el Retiro",
+    "vizcaya": "Puente de Vizcaya", "gaudi": "Obras de Gaudí", "palau": "Palau de la Música", "teide": "Teide", "donana": "Doñana",
 }
 
 
@@ -117,6 +135,15 @@ def build():
         return int(r[iC])
 
     starts = {pid: cell_of(n, p) for pid, (n, p) in STARTS.items()}
+    entries = {}
+    for eid, opts in ENTRIES.items():
+        for n, p in opts:
+            r = find(n, p)
+            if r is not None:
+                entries[eid] = int(r[iC])
+                break
+        else:
+            missing.append(f"entrada {eid}")
     resources = []
     taken = set()
     for typ, n, p in RESOURCES:
@@ -159,6 +186,7 @@ def build():
         "names": names,
         "ancient": ancient,
         "wonder_sites": sites,
+        "entries": entries,
     })
     print(f"    → game.json: {sum(v is not None for v in starts.values())} salidas, {len(resources)} recursos, "
           f"{len(names)} nombres, {len(ancient)} antiguos, {len(sites)} sitios de maravillas")
