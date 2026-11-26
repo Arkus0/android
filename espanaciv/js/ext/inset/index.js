@@ -6,6 +6,7 @@ export function install(app) {
   app.registerStaticLayer({
     id: "insets",
     z: 92,
+    keepInPlain: true, // el recuadro de Canarias también se ve en el modo juego
     sig: () => "v1",
     draw(ctx, vp, w, o) {
       const s = o.s; // css px por unidad de mapa

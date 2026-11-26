@@ -118,7 +118,7 @@ async function main() {
   }).join(";");
   const cacheKey = () =>
     `${state.lens?.id ?? "terrain"}|${state.band ? state.band.join(",") : ""}|${state.showResources ? 1 : 0}|${dpr}|${cam.w}x${cam.h}` +
-    `|${state.selectedCity?.id ?? ""}|${resourceFilterSig(state.resourceFilter)}|${layersSig()}`;
+    `|${state.selectedCity?.id ?? ""}|${resourceFilterSig(state.resourceFilter)}|${layersSig()}|${state.plainMap ? "plain" : ""}`;
 
   // lead: [-1|0|1, -1|0|1], the direction a pan ran off the cache; the new cache reaches further that way (and less
   // the other way, same size), so a steady pan re-renders less often.
@@ -140,7 +140,7 @@ async function main() {
     const hitsOut = {};
     drawStatic(cctx, vp, w, {
       lens: state.lens, showResources: state.showResources, resourceFilter: state.resourceFilter, selectedCity: state.selectedCity, hits: hitsOut,
-      layers: staticLayers, app,
+      layers: staticLayers, app, plain: !!state.plainMap,
     });
     cache.hits = { resources: hitsOut.resources || [] };
     cache.vp = vp;
@@ -243,7 +243,7 @@ async function main() {
     // Plates of cities beside an open dock stay clear of it (desktop docks only; phones use a bottom sheet).
     const d = isMobile() ? null : dockState();
     state.bannerBounds = d && d.open ? { x0: d.l, x1: cam.w - d.r } : null;
-    hits = drawBanners(ctx, cam, w, state, nation.yields, nation);
+    hits = state.plainMap ? [] : drawBanners(ctx, cam, w, state, nation.yields, nation);
     if (overlays.length) drawOverlays(ctx, cam, overlays, app, { dpr, zMin: 100 });
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     minimap.draw();
@@ -941,6 +941,17 @@ async function main() {
     if (cell !== state.hoverCell) {
       state.hoverCell = cell;
       requestDraw();
+    }
+    // Un modo (el juego) puede poner su propio tooltip: app.hoverHook(cell, mx, my) → html | null (nada) | undefined (el normal).
+    if (app.hoverHook) {
+      let html;
+      try { html = app.hoverHook(cell, mx, my); } catch (err) { console.error("hoverHook failed", err); }
+      if (html !== undefined) {
+        if (html) showHtmlTooltip(mx, my, html);
+        else hideTooltip();
+        if (events.has("hover")) emitHover(cell, null, null, mx, my, null);
+        return;
+      }
     }
     const lh = city ? null : hitLayer(mx, my);
     let tip = null;
