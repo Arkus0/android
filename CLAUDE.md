@@ -307,3 +307,16 @@ seleccionan por `data-modo`).
 - **Más juegos de pulsar** y temas de palabras (animales, espacio…).
 - **Forma la palabra** (anagramas) y **adivinanzas**.
 ```
+
+## 9. Otro proyecto en este repo: España Civ (`espanaciv/`)
+
+Proyecto **independiente** del juego de letras: la España real dibujada como mapa de estrategia 4X
+(fork MIT de [usaciv](https://karpathy.ai/usaciv/), de Andrej Karpathy). Detalles en `espanaciv/README.md`.
+
+- **Web**: `espanaciv/` (index.html, css/, js/ con **módulos ES**, data/*.json). A diferencia del juego, **no**
+  funciona con doble clic: necesita HTTP (`cd espanaciv && python3 -m http.server`). En producción:
+  `https://android-coral-ten.vercel.app/espanaciv/`.
+- **Datos**: `espanaciv/data/*.json` los genera el pipeline Python de `tools/espanaciv/` (`fetch.py` →
+  `worldcover.py` → `build.py`; necesita numpy, rasterio y affine). No editar los JSON a mano.
+- **No mezclar**: el `sw.js` del juego ignora las rutas `/espanaciv/` (no las cachea). El test de humo
+  (`test/smoke.js`) es solo del juego.

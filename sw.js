@@ -4,7 +4,7 @@
    Estrategia: cache-first con respaldo de red (es un sitio estático).
    Sube CACHE cuando cambies archivos para forzar la actualización.
    ===================================================================== */
-var CACHE = "letras-vivas-v3";
+var CACHE = "letras-vivas-v4";
 var ASSETS = [
   "./",
   "index.html",
@@ -38,6 +38,8 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("fetch", function (e) {
   var req = e.request;
   if (req.method !== "GET") return;
+  // España Civ (/espanaciv/) es otro proyecto: que lo sirva la red, sin pasar por esta caché.
+  if (new URL(req.url).pathname.indexOf("/espanaciv/") !== -1) return;
   e.respondWith(
     caches.match(req).then(function (cacheado) {
       if (cacheado) return cacheado;
